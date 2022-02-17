@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
+import gsap from 'gsap'
+
 
 function init () {
   const container = document.getElementById('container');
@@ -16,6 +18,9 @@ function init () {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+
+  // const axesHelper = new THREE.AxesHelper(2)
+  // scene.add(axesHelper);
 
   // create and position the plane
   const planeGeometry = new THREE.PlaneGeometry(100, 40, 1, 1);
@@ -58,9 +63,7 @@ function init () {
   scene.add(sphere);
 
   // position and point the camera to the center of the scene
-  camera.position.x = -35;
-  camera.position.y = 30;
-  camera.position.z = 25;
+  camera.position.set(-35, 30, 25)
   camera.lookAt(new THREE.Vector3(10, 0, 0));
 
   // add subtle ambient lighting
@@ -101,6 +104,13 @@ function init () {
   sphereLightMesh.position.z = 3;
 
   scene.add(sphereLightMesh);
+
+  // const group = new THREE.Group();
+  // scene.add(group)
+  // group.add(cube, sphere)
+
+  // animate cube with gsap libs
+  gsap.to(cube.position, { duration: 4, delay: 2, x: 4 })
 
   // add the output of the renderer to the html element
   container.appendChild(renderer.domElement);
@@ -165,9 +175,11 @@ function init () {
   }
   const stats = initStats();
 
+  const clock = new THREE.Clock()
   render();
 
   function render() {
+    const elapsedTime = clock.getElapsedTime()
     stats.update();
     // rotate the cube around its axes
     cube.rotation.x += controls.rotationSpeed;
@@ -201,7 +213,6 @@ function init () {
 
     // render using requestAnimationFrame
     requestAnimationFrame(render);
-
 
     renderer.render(scene, camera);
   }
