@@ -15,6 +15,7 @@ function init () {
 
   // renderer.setClearColor(new THREE.Color('#ffffff', 1.0));
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -215,6 +216,13 @@ function init () {
 
     renderer.render(scene, camera);
   }
+  // resize the viewport
+  function onResize () {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener('resize', onResize, false);
 }
 
 window.onload = init;
