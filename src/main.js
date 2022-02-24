@@ -1,3 +1,3 @@
 import './css/index.css'
 
-import './demo/rotate-cube'
+import './demo/text-3d'
