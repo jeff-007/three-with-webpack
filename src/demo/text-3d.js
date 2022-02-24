@@ -5,6 +5,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 
+const cursor = {
+  x: 0,
+  y: 0
+}
+window.addEventListener('mousemove', (event) => {
+  cursor.x = event.clientX / window.innerWidth - 0.5
+  cursor.y = -(event.clientY / window.innerHeight - 0.5)
+})
+
 function init () {
   const container = document.getElementById('container');
   const scene = new THREE.Scene();
@@ -18,6 +27,13 @@ function init () {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+  // const axesHelper = new THREE.AxesHelper()
+  // scene.add(axesHelper)
+
+  const textureLoader = new THREE.TextureLoader()
+  const matCapTexture = textureLoader.load('/textures/matcaps/3.png')
+  const donutTexture = textureLoader.load('/textures/matcaps/1.png')
+
   let text;
   let loadedFont;
 
@@ -26,22 +42,36 @@ function init () {
   const gui = new dat.GUI({ closed: true })
   const guiOptions = {
     styleOption: {
-      size: 0.5, // 字体大小
+      size: 0.8, // 字体大小
       height: 0.2, // 拉伸长度
-      curveSegments: 12, // 图形拉伸时分段数
+      curveSegments: 30, // 图形拉伸时分段数
       bevelEnabled: true, // 设置斜角
       bevelThickness: 0.03, // 斜角深度
       bevelSize: 0.02, // 斜角高度
       bevelOffset: 0,
-      bevelSegments: 5 // 斜角分段数
+      bevelSegments: 4 // 斜角分段数
     },
     // 创建文字网格
     createText: (option) => {
-      const textGeometry = new TextGeometry('Hello three.js!', {
+      const textGeometry = new TextGeometry('Just do it!', {
         font: loadedFont,
         ...option
       })
-      const textMaterial = new THREE.MeshBasicMaterial({ wireframe: true })
+      // 居中显示文字，先计算几何体边界（两种边界类型 box sphere）
+      // computeBoundingBox、translate方法只应用在几何体对象上
+      // 设置斜角的原因，文字几何体在x、y轴上的位移距离要先减去斜角高度，z轴上位移距离需要减去斜角深度
+      textGeometry.computeBoundingBox()
+      const { styleOption: { bevelSize, bevelThickness } } = guiOptions
+      textGeometry.translate(
+        -textGeometry.boundingBox.max.x * 0.5,
+        -(textGeometry.boundingBox.max.y - bevelSize) * 0.5,
+        -(textGeometry.boundingBox.max.z - bevelThickness) * 0.5
+      )
+      // 几何体的center方法基于bounding box实现
+      // 上述居中写法等价于textGeometry.center()
+      // textGeometry.center()
+      // console.log(textGeometry.boundingBox)
+      const textMaterial = new THREE.MeshMatcapMaterial({ matcap: matCapTexture })
       return new THREE.Mesh(textGeometry, textMaterial)
     },
     // 更新文字网格属性
@@ -81,8 +111,28 @@ function init () {
       guiOptions.updateText()
     })
   })
-  camera.position.z = 2
-  camera.lookAt(0, 0, 0)
+
+  // 随机donut几何体
+  const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45);
+  const donutMaterial = new THREE.MeshMatcapMaterial({ matcap: donutTexture })
+  for (let i = 0; i < 100; i++) {
+    const donut = new THREE.Mesh(donutGeometry, donutMaterial)
+
+    donut.position.x = (Math.random() - 0.5) * 12
+    donut.position.y = (Math.random() - 0.5) * 12
+    donut.position.z = (Math.random() - 0.5) * 12
+
+    donut.rotation.x = Math.random() * Math.PI
+    donut.rotation.y = Math.random() * Math.PI
+
+    // 等比例缩放
+    const scale = Math.random()
+    donut.scale.set(scale, scale, scale)
+    scene.add(donut)
+  }
+
+  camera.position.z = 4
+  text && camera.lookAt(text.position)
 
   container.appendChild(renderer.domElement);
 
@@ -100,16 +150,18 @@ function init () {
   }
   const stats = initStats();
   const clock = new THREE.Clock()
+  let step = 0
 
   render();
 
   function render() {
     const elapsedTime = clock.getElapsedTime()
     stats.update();
-    // 原生js事件实现鼠标旋转mesh
-    // camera.position.x = Math.sin(cursor.x * Math.PI * 2) * 3
-    // camera.position.Z = Math.cos(cursor.x * Math.PI * 2) * 3
-    // camera.lookAt(cube.position)
+
+    camera.position.x = Math.cos(step) * 8
+    camera.position.y = Math.sin(step) * 8
+    step += 0.005
+    step %= Math.PI * 2;
 
     // 使用控件的enableDamping属性时，需要在每一帧中调用控件的update方法
     controls.update()
