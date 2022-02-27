@@ -1,3 +1,4 @@
 import './css/index.css'
 
-import './demo/text-3d'
+import './demo/haunted-house'
+
