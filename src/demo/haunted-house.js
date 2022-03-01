@@ -2,17 +2,6 @@ import * as THREE from 'three'
 import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
-
-const cursor = {
-  x: 0,
-  y: 0
-}
-window.addEventListener('mousemove', (event) => {
-  cursor.x = event.clientX / window.innerWidth - 0.5
-  cursor.y = -(event.clientY / window.innerHeight - 0.5)
-})
 
 function init () {
   const container = document.getElementById('container');
@@ -21,14 +10,15 @@ function init () {
   scene.fog = fog
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(5.5, 3.2, 8.4)
+  camera.position.set(5.5, 3.8, 7.2)
   camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   const renderer = new THREE.WebGLRenderer();
   renderer.setClearColor('#262837')
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  // renderer.shadowMap.enabled = true
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
@@ -40,6 +30,8 @@ function init () {
 
   // 地面
   const grassColorTexture = textureLoader.load('/textures/grass_large.jpg')
+  grassColorTexture.repeat.set(2, 2)
+  grassColorTexture.wrapS = grassColorTexture.wrapT = THREE.RepeatWrapping
   const planeGeometry = new THREE.PlaneGeometry(20, 20);
   const planeMaterial = new THREE.MeshStandardMaterial({
     map: grassColorTexture
@@ -109,14 +101,17 @@ function init () {
   const bush1 = new THREE.Mesh(bushGeometry, bushMaterial)
   bush1.scale.set(0.5, 0.5, 0.5)
   bush1.position.set(0.8, 0.2, 2.2)
+  bush1.castShadow = true
 
   const bush2 = new THREE.Mesh(bushGeometry, bushMaterial)
   bush2.scale.set(0.25, 0.25, 0.25)
   bush2.position.set(1.4, 0.1, 2.1)
+  bush2.castShadow = true
 
   const bush3 = new THREE.Mesh(bushGeometry, bushMaterial)
   bush3.scale.set(0.4, 0.4, 0.4)
   bush3.position.set(-0.9, 0.1, 2.2)
+  bush3.castShadow = true
 
   house.add(bush1, bush2, bush3)
 
@@ -133,17 +128,25 @@ function init () {
     const x = Math.sin(angle) * radius
     const z = Math.cos(angle) * radius
     const grave = new THREE.Mesh(graveGeometry, graveMaterial)
+    grave.castShadow = true
     grave.position.set(x, 0.3, z)
     grave.rotation.y = (Math.random() - 0.5) * 0.4
     grave.rotation.z = (Math.random() - 0.5) * 0.2
     graves.add(grave)
   }
 
+  const ghost1 = new THREE.PointLight('#ff00ff', 2, 3)
+  const ghost2 = new THREE.PointLight('#00ffff', 2, 3)
+  const ghost3 = new THREE.PointLight('#ffff00', 2, 3)
+  ghost1.castShadow = true
+  ghost2.castShadow = true
+  ghost3.castShadow = true
+  scene.add(ghost1, ghost2, ghost3)
+
   // 模拟月光
   const pointColor = '#b9d5ff';
   const directLight = new THREE.DirectionalLight(pointColor);
   directLight.position.set(4, 5, -2);
-  directLight.castShadow = true;
   directLight.shadow.camera.near = 2;
   directLight.shadow.camera.far = 200;
   directLight.shadow.camera.fov = 30;
@@ -151,6 +154,7 @@ function init () {
   directLight.distance = 0;
   directLight.angle = 0.4;
   directLight.intensity = 0.12
+  directLight.castShadow = true;
   scene.add(directLight);
 
   // 环境光
@@ -162,55 +166,12 @@ function init () {
   // 门上灯光
   const doorLight = new THREE.PointLight('#fb540e', 1, 10)
   doorLight.position.set(0, 2.2, 2.7)
+  doorLight.castShadow = true
+  doorLight.shadow.mapSize.width = 256
+  doorLight.shadow.mapSize.height = 256
+  doorLight.shadow.camera.far = 7
   house.add(doorLight)
 
-
-  // const hemisphereLight = new THREE.HemisphereLight(0x00ffff, 0x00ff00, 0.6)
-  // hemisphereLight.position.set(0, 500, 0)
-  // scene.add(hemisphereLight)
-
-  // const guiOptions = {
-  //   styleOption: {
-  //     size: 0.8, // 字体大小
-  //     height: 0.2, // 拉伸长度
-  //     curveSegments: 30, // 图形拉伸时分段数
-  //     bevelEnabled: true, // 设置斜角
-  //     bevelThickness: 0.03, // 斜角深度
-  //     bevelSize: 0.02, // 斜角高度
-  //     bevelOffset: 0,
-  //     bevelSegments: 4 // 斜角分段数
-  //   },
-  //   // 创建文字网格
-  //   createText: (option) => {
-  //     const textGeometry = new TextGeometry('Just do it!', {
-  //       font: loadedFont,
-  //       ...option
-  //     })
-  //     // 居中显示文字，先计算几何体边界（两种边界类型 box sphere）
-  //     // computeBoundingBox、translate方法只应用在几何体对象上
-  //     // 设置斜角的原因，文字几何体在x、y轴上的位移距离要先减去斜角高度，z轴上位移距离需要减去斜角深度
-  //     textGeometry.computeBoundingBox()
-  //     const { styleOption: { bevelSize, bevelThickness } } = guiOptions
-  //     textGeometry.translate(
-  //       -textGeometry.boundingBox.max.x * 0.5,
-  //       -(textGeometry.boundingBox.max.y - bevelSize) * 0.5,
-  //       -(textGeometry.boundingBox.max.z - bevelThickness) * 0.5
-  //     )
-  //     // 几何体的center方法基于bounding box实现
-  //     // 上述居中写法等价于textGeometry.center()
-  //     // textGeometry.center()
-  //     // console.log(textGeometry.boundingBox)
-  //     const textMaterial = new THREE.MeshMatcapMaterial({ matcap: matCapTexture })
-  //     return new THREE.Mesh(textGeometry, textMaterial)
-  //   },
-  //   // 更新文字网格属性
-  //   updateText: () => {
-  //     scene.remove(text)
-  //     const options = { ...guiOptions.styleOption }
-  //     text = guiOptions.createText(options)
-  //     scene.add(text)
-  //   }
-  // }
   container.appendChild(renderer.domElement);
 
   function initStats() {
@@ -232,6 +193,23 @@ function init () {
 
   function render() {
     const elapsedTime = clock.getElapsedTime()
+
+    // ghost 动画
+    const ghost1Angle = elapsedTime * 0.5
+    ghost1.position.x = Math.cos(ghost1Angle) * 4
+    ghost1.position.z = Math.sin(ghost1Angle) * 4
+    ghost1.position.y = Math.sin(elapsedTime * 3)
+
+    const ghost2Angle = -elapsedTime * 0.32
+    ghost2.position.x = Math.cos(ghost2Angle) * 5
+    ghost2.position.z = Math.sin(ghost2Angle) * 5
+    ghost2.position.y = Math.sin(elapsedTime * 4) + Math.sin(elapsedTime * 2.5)
+
+    const ghost3Angle = -elapsedTime * 0.18
+    ghost3.position.x = Math.cos(ghost3Angle) * (Math.sin(elapsedTime * 0.32) + 7)
+    ghost3.position.z = Math.sin(ghost3Angle) * (Math.sin(elapsedTime * 0.5) + 7)
+    ghost3.position.y = Math.sin(elapsedTime * 5) + Math.sin(elapsedTime * 2)
+
     stats.update();
     // 使用控件的enableDamping属性时，需要在每一帧中调用控件的update方法
     controls.update()
