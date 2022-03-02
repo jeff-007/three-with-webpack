@@ -32,9 +32,10 @@ function init () {
   const grassColorTexture = textureLoader.load('/textures/grass_large.jpg')
   grassColorTexture.repeat.set(2, 2)
   grassColorTexture.wrapS = grassColorTexture.wrapT = THREE.RepeatWrapping
-  const planeGeometry = new THREE.PlaneGeometry(20, 20);
+  const planeGeometry = new THREE.PlaneBufferGeometry(20, 20);
   const planeMaterial = new THREE.MeshStandardMaterial({
-    map: grassColorTexture
+    map: grassColorTexture,
+    side: THREE.DoubleSide,
   });
   const plane = new THREE.Mesh(planeGeometry, planeMaterial);
   plane.receiveShadow = true;
@@ -74,7 +75,7 @@ function init () {
     depth: 4
   }
   const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(roofSize.width, roofSize.height, roofSize.depth),
+    new THREE.ConeBufferGeometry(roofSize.width, roofSize.height, roofSize.depth),
     new THREE.MeshStandardMaterial({ color: '#b35f45' })
   )
   roof.position.y = wallSize.height + roofSize.height / 2
@@ -83,7 +84,7 @@ function init () {
 
   // 门
   const door = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1.4),
+    new THREE.PlaneBufferGeometry(1, 1.4),
     new THREE.MeshStandardMaterial({ color: '#aa7b7b' })
   )
   console.log('geometry', door.geometry)
