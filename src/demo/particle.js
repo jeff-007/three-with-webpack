@@ -26,24 +26,35 @@ function init () {
   const particleTexture = textureLoader.load('textures/particles/snowflake2.png')
 
   const particleGeometry = new THREE.BufferGeometry()
-  const count = 50000
+  const count = 5000
 
-  const position = new Float32Array(count * 3)
+  const positions = new Float32Array(count * 3)
+  const colors = new Float32Array(count * 3)
+
   for (let i = 0; i < count; i++) {
-    position[i] = (Math.random() - 0.5) * 15
+    positions[i] = (Math.random() - 0.5) * 15
+    colors[i] = Math.random()
   }
-  particleGeometry.setAttribute('position', new THREE.BufferAttribute(position, 3))
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
   // const particleGeometry = new THREE.SphereBufferGeometry(4, 32, 32)
   const particleMaterial = new THREE.PointsMaterial({
-    size: 0.08,
+    size: 0.2,
     sizeAttenuation: true,
-    color: '#0099ff',
+    // color: '#0099ff',
     transparent: true,
-    alphaMap: particleTexture
+    alphaMap: particleTexture,
+    // alphaTest: true,
+    // depthTest: false,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexColors: true
   })
   const particles = new THREE.Points(particleGeometry, particleMaterial)
   scene.add(particles)
+
+  console.log(particleGeometry.attributes.position.array)
 
   // 环境光
   // const ambiColor = '#b9d5ff';
@@ -72,6 +83,17 @@ function init () {
 
   function render() {
     const elapsedTime = clock.getElapsedTime()
+
+    // 粒子系统动画实现，也可以更新position中array数组的形式
+    // particles.rotation.y = elapsedTime * 0.12
+    // particles.rotation.z = elapsedTime * 0.05
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3
+      const x = particleGeometry.attributes.position.array[i3]
+      particleGeometry.attributes.position.array[i3 + 1] = Math.sin(elapsedTime + x)
+    }
+    particleGeometry.attributes.position.needsUpdate  = true
 
     stats.update();
     // 使用控件的enableDamping属性时，需要在每一帧中调用控件的update方法

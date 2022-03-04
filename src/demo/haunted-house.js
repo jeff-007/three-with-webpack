@@ -64,7 +64,7 @@ function init () {
     })
   )
   // walls.geometry.setAttribute('uv2', new THREE.Float32BufferAttribute(walls.geometry.attributes.uv.array, 2))
-  walls.position.y = wallSize.height / 2
+  walls.position.y = wallSize.height / 2 + 0.01
   walls.castShadow = true
   house.add(walls)
 
