@@ -169,16 +169,6 @@ function init () {
     renderer.render(scene, camera);
   }
 
-  // 全屏操作
-  window.addEventListener('dblclick', () => {
-    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement
-    if (!fullscreenElement) {
-      container.requestFullscreen() || container.webkitFullscreenElement()
-    } else {
-      document.exitFullscreen() || document.webkitExitFullscreen()
-    }
-  })
-
   // 视口自适应调整
   function onResize () {
     camera.aspect = window.innerWidth / window.innerHeight;
