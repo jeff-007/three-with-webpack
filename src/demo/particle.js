@@ -91,7 +91,7 @@ function init () {
       const x = particleGeometry.attributes.position.array[i3]
       particleGeometry.attributes.position.array[i3 + 1] = Math.sin(elapsedTime + x)
     }
-    particleGeometry.attributes.position.needsUpdate  = true
+    particleGeometry.attributes.position.needsUpdate = true
 
     stats.update();
     // 使用控件的enableDamping属性时，需要在每一帧中调用控件的update方法
