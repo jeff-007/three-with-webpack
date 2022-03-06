@@ -2,7 +2,9 @@ import './css/index.css'
 
 // import './demo/haunted-house'
 
-import './demo/galaxy'
+// import './demo/galaxy'
+
+import './demo/raycaster'
 
 
 // 全屏操作

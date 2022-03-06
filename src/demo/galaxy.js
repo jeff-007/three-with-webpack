@@ -36,7 +36,7 @@ function init () {
     count: 100000,
     radius: 8, // 星云半径
     branches: 5, // 星云分支数
-    spin: 1,
+    spin: 0.5,
     randomness: 0.2,
     randomnessPower: 3, // 通过幂运算，每条分支上半径越大的地方粒子偏移越小, 使得粒子能够集中在中心位置
     insideColor: '#ff6030',
