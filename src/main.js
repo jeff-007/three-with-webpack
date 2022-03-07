@@ -4,7 +4,9 @@ import './css/index.css'
 
 // import './demo/galaxy'
 
-import './demo/raycaster'
+// import './demo/raycaster'
+
+import './demo/physics'
 
 
 // 全屏操作
