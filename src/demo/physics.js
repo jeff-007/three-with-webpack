@@ -23,12 +23,18 @@ function init () {
   // scene.add(axesHelper);
 
   // create and position the plane
-  const planeGeometry = new THREE.PlaneGeometry(80, 80, 1, 1);
+  const planeGeometry = new THREE.PlaneGeometry(100, 100, 1, 1);
   const planeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
   const plane = new THREE.Mesh(planeGeometry, planeMaterial);
   plane.receiveShadow = true;
   plane.rotation.x = -0.5 * Math.PI;
   scene.add(plane);
+
+  const sphereGeometry = new THREE.SphereGeometry(4, 20, 20);
+  const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff });
+  const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  sphere.castShadow = true;
+  scene.add(sphere);
 
   // 创建物理场景
   const world = new CANNON.World()
@@ -68,10 +74,15 @@ function init () {
   // 创建Body，传入质量、位置信息
   const sphereBody = new CANNON.Body({
     mass: 1,
-    position: new CANNON.Vec3(0, 24, 0),
+    position: new CANNON.Vec3(-10, 20, 0),
     shape: sphereShape,
     material: plasticMaterial
   })
+
+  // 通过applyForce或者applyLocalForce给球体施加力
+  // 第一个参数使用向量表示力，第二个参数表示力的作用点
+  sphereBody.applyLocalForce(new CANNON.Vec3(300, 0, 0), new CANNON.Vec3(0, 0, 0))
+
   // 将创建好的Body添加至world
   world.addBody(sphereBody)
 
@@ -86,21 +97,8 @@ function init () {
   floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(-1, 0, 0), Math.PI * 0.5)
   world.addBody(floorBody)
 
-  const sphereGeometry = new THREE.SphereGeometry(4, 20, 20);
-  const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff });
-  const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-
-  // position the sphere
-  sphere.position.x = 10;
-  sphere.position.y = 4;
-  sphere.position.z = 2;
-  sphere.castShadow = true;
-
-  // add the sphere to the scene
-  scene.add(sphere);
-
   // position and point the camera to the center of the scene
-  camera.position.set(-35, 30, 25)
+  camera.position.set(-54, 83, 85)
   camera.lookAt(new THREE.Vector3(10, 0, 0));
 
   // add subtle ambient lighting
@@ -112,10 +110,10 @@ function init () {
   spotLight.position.set(-40, 30, -10);
   spotLight.castShadow = true;
   spotLight.shadow.camera.near = 2;
-  spotLight.shadow.camera.far = 200;
-  spotLight.shadow.camera.fov = 30;
+  spotLight.shadow.camera.far = 400;
+  spotLight.shadow.camera.fov = 40;
   spotLight.target = plane;
-  spotLight.angle = 0.5;
+  spotLight.angle = 0.8;
   scene.add(spotLight);
 
   // const target = new THREE.Object3D();
@@ -125,18 +123,7 @@ function init () {
   container.appendChild(renderer.domElement);
 
   const guiOptions = {
-    rotationSpeed: 0.03,
-    bouncingSpeed: 0.03,
     ambientColor: ambiColor,
-    intensity: 1,
-    distance: 0,
-    exponent: 30,
-    angle: 0.1,
-    debug: false,
-    castShadow: true,
-    onlyShadow: false,
-    target: 'Plane',
-    stopMovingLight: false
   }
 
   const gui = new dat.GUI();
@@ -163,20 +150,24 @@ function init () {
 
   const clock = new THREE.Clock()
   let oldElapsedTime = 0
-  let deltaTime = 0
+  // let deltaTime = 0
 
   render();
 
   function render() {
     // 计算本次渲染距上一次渲染所用的时间
     const elapsedTime = clock.getElapsedTime()
-    deltaTime = elapsedTime - oldElapsedTime
+    const deltaTime = elapsedTime - oldElapsedTime
     oldElapsedTime = elapsedTime
+
+    // 在每一帧渲染时，使用applyForce模拟风的作用
+    // 第二个参数表示力的作用点
+    sphereBody.applyForce(new CANNON.Vec3(-0.5, 0, -0.5), sphereBody.position)
 
     // 更新CANNON.js的world以及three.js中的场景
     // 使用step方法更新world step原理详见 https://gafferongames.com/post/fix_your_timestep/
     // 时间步长(time step)可设置为1/60，渲染频率为60fps
-    world.step(1 / 60, deltaTime, 3)
+    world.step(1 / 60, deltaTime * 2, 3)
     // 将物理场景中的物体每一帧坐标同步到three中的网格
     sphere.position.copy(sphereBody.position)
 
