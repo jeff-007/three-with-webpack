@@ -30,12 +30,6 @@ function init () {
   plane.rotation.x = -0.5 * Math.PI;
   scene.add(plane);
 
-  const sphereGeometry = new THREE.SphereGeometry(4, 20, 20);
-  const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff });
-  const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-  sphere.castShadow = true;
-  scene.add(sphere);
-
   // 创建物理场景
   const world = new CANNON.World()
   // 设置重力，接收一个Vec3变量
@@ -68,6 +62,12 @@ function init () {
   //     restitution: 0.7
   //   }
   // )
+
+  const sphereGeometry = new THREE.SphereGeometry(4, 20, 20);
+  const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff });
+  const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  sphere.castShadow = true;
+  scene.add(sphere);
 
   // 创建shape，类似于three中的geometry
   const sphereShape = new CANNON.Sphere(4)
