@@ -41,37 +41,37 @@ function init () {
   // 可以通过设置物理场景中物体的材质来改变物体的摩擦、弹动等效果
   // 首先定义需要实现动画效果的材质（在创建Body时为其material属性赋值）,所传参数只是方便标记当前材质无实际意义
   // 然后创建ContactMaterial，设置上述定义的材质在接触时的效果（设置摩擦，弹跳等）
-  const concreteMaterial = new CANNON.Material('concrete')
-  const plasticMaterial = new CANNON.Material('plastic')
-  const concretePlasticContactMaterial = new CANNON.ContactMaterial(
-    concreteMaterial,
-    plasticMaterial,
-    {
-      friction: 0.1,
-      restitution: 0.7
-    }
-  )
-  world.addContactMaterial(concretePlasticContactMaterial)
-  // 也可以将 concreteMaterial、plasticMaterial改为defaultMaterial，减少变量名的引用
-  // const defaultMaterial = new CANNON.Material('default')
-  // const defaultPlasticContactMaterial = new CANNON.ContactMaterial(
-  //   defaultMaterial,
-  //   defaultMaterial,
+  // const concreteMaterial = new CANNON.Material('concrete')
+  // const plasticMaterial = new CANNON.Material('plastic')
+  // const concretePlasticContactMaterial = new CANNON.ContactMaterial(
+  //   concreteMaterial,
+  //   plasticMaterial,
   //   {
   //     friction: 0.1,
   //     restitution: 0.7
   //   }
   // )
+  // world.addContactMaterial(concretePlasticContactMaterial)
+
+  // 也可以将 concreteMaterial、plasticMaterial改为defaultMaterial，减少变量名的引用
+  const defaultMaterial = new CANNON.Material('default')
+  const defaultContactMaterial = new CANNON.ContactMaterial(
+    defaultMaterial,
+    defaultMaterial,
+    {
+      friction: 0.1,
+      restitution: 0.7
+    }
+  )
+  world.addContactMaterial(defaultContactMaterial)
+  world.defaultContactMaterial = defaultContactMaterial
 
   // 创建多个物体
   // 保存需要在render中更新坐标的对象，一个mesh对应一个body
   const objectsToUpdate = []
-
+  const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff })
   const createSphere = (radius, position) => {
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 20, 20),
-      new THREE.MeshLambertMaterial({ color: 0x7777ff, metalness: 0.3, roughness: 0.4 })
-    )
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 20), sphereMaterial)
     mesh.castShadow = true
     mesh.position.copy(position)
     scene.add(mesh)
@@ -83,7 +83,7 @@ function init () {
       mass: 1,
       position: new CANNON.Vec3(-10, 20, 0),
       shape,
-      material: plasticMaterial
+      // material: defaultMaterial
     })
     body.position.copy(position)
     world.addBody(body)
@@ -94,13 +94,40 @@ function init () {
     })
   }
 
-  createSphere(4, { x: -10, y: 20, z: 0 })
+  createSphere(4, { x: -10, y: 30, z: 0 })
+
+  // 添加立方体
+  const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff })
+  const createBox = (size, position) => {
+    const { width, height, depth } = size
+    const mesh = new THREE.Mesh(new THREE.BoxBufferGeometry(width, height, depth), boxMaterial)
+    mesh.castShadow = true
+    mesh.position.copy(position)
+    scene.add(mesh)
+
+    // 创建shape，类似于three中的geometry
+    const shape = new CANNON.Box(new CANNON.Vec3(width * 0.5, height * 0.5, depth * 0.5))
+    // 创建Body，传入质量、位置信息
+    const body = new CANNON.Body({
+      mass: 1,
+      position: new CANNON.Vec3(-10, 20, 0),
+      shape
+      // material: defaultMaterial
+    })
+    body.position.copy(position)
+    world.addBody(body)
+
+    objectsToUpdate.push({
+      mesh,
+      body
+    })
+  }
 
   // 使用Plane shape创建一个新Body模拟地面
   // set the mass to 0 so that the body is static
   const floorShape = new CANNON.Plane();
   const floorBody = new CANNON.Body();
-  floorBody.material = concreteMaterial
+  // floorBody.material = defaultMaterial
   floorBody.mass = 0
   floorBody.addShape(floorShape)
   // CANNON中的旋转只能通过四元数Quaternion实现，具体方法详见文档
@@ -132,15 +159,34 @@ function init () {
   // add the output of the renderer to the html element
   container.appendChild(renderer.domElement);
 
-  const guiOptions = {
-    ambientColor: ambiColor,
-  }
-
   const gui = new dat.GUI();
-
-  gui.addColor(guiOptions, 'ambientColor').onChange((e) => {
-    ambientLight.color = new THREE.Color(e)
-  })
+  const guiOptions = {
+    createSpheres: () => {
+      if (objectsToUpdate.length >= 200) return
+      const position = {
+        x: (Math.random() - 0.5) * 10,
+        y: 30,
+        z: (Math.random() - 0.5) * 10
+      }
+      createSphere(Math.random() * 4, position)
+    },
+    createBoxes: () => {
+      if (objectsToUpdate.length >= 200) return
+      const size = {
+        width: Math.random() * 6,
+        height: Math.random() * 6,
+        depth: Math.random() * 6
+      }
+      const position = {
+        x: (Math.random() - 0.5) * 10,
+        y: 30,
+        z: (Math.random() - 0.5) * 10
+      }
+      createBox(size, position)
+    }
+  }
+  gui.add(guiOptions, 'createSpheres')
+  gui.add(guiOptions, 'createBoxes')
 
   function initStats() {
     const stats = new Stats();
@@ -174,8 +220,11 @@ function init () {
     world.step(1 / 60, deltaTime * 2, 3)
 
     // 多物体通过循环渲染
+    // three中object的位置、旋转与对应物理世界中的body同步
     for (const object of objectsToUpdate) {
       object.mesh.position.copy(object.body.position)
+      object.mesh.quaternion.copy(object.body.quaternion)
+      object.body.applyForce(new CANNON.Vec3(-0.01, 0, -0.01), object.body.position)
     }
 
     stats.update();
