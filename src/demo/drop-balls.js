@@ -19,6 +19,17 @@ function init () {
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
 
+  // 加载音频文件
+  const hitSound = new Audio('/audio/cat.ogg')
+  const playHitSound = (collision) => {
+    // 通过collision对象中contact的 getImpactVelocityAlongNormal() 方法获取碰撞强度
+    const impactStrength = collision.contact.getImpactVelocityAlongNormal()
+    if (impactStrength < 5) return
+    hitSound.volume = Math.random()
+    hitSound.currentTime = 0
+    hitSound.play()
+  }
+
   // const axesHelper = new THREE.AxesHelper(2)
   // scene.add(axesHelper);
 
@@ -32,6 +43,9 @@ function init () {
 
   // 创建物理场景
   const world = new CANNON.World()
+  // 切换碰撞检测方式 NaiveBroadphase => SAPBroadphase
+  world.broadphase = new CANNON.SAPBroadphase(world)
+  world.allowSleep = true
   // 设置重力，接收一个Vec3变量
   world.gravity.set(0, -9.82, 0)
   // three.js中通过添加mesh向场景中添加对象，在物理场景中则是添加Body
@@ -115,6 +129,11 @@ function init () {
       // material: defaultMaterial
     })
     body.position.copy(position)
+
+    // 监听盒子碰撞事件、添加撞击音频
+    // 监听到的碰撞事件中包含碰撞强度等信息，可根据该属性调整声音强弱
+    body.addEventListener('collide', playHitSound)
+
     world.addBody(body)
 
     objectsToUpdate.push({
