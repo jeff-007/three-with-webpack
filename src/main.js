@@ -6,7 +6,7 @@ import './css/index.css'
 
 // import './demo/raycaster'
 
-import './demo/drop-balls'
+import './demo/gltf-duck'
 
 // 全屏操作
 const container = document.getElementById('container');
