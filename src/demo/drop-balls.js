@@ -202,10 +202,19 @@ function init () {
         z: (Math.random() - 0.5) * 10
       }
       createBox(size, position)
+    },
+    // 删除场景中的物体时，需要同时删除three中的object和物理场景中的body，以及监听事件
+    reset: () => {
+      for (const object of objectsToUpdate) {
+        object.body.removeEventListener('collide', playHitSound)
+        world.removeBody(object.body)
+        scene.remove(object.mesh)
+      }
     }
   }
   gui.add(guiOptions, 'createSpheres')
   gui.add(guiOptions, 'createBoxes')
+  gui.add(guiOptions, 'reset')
 
   function initStats() {
     const stats = new Stats();
