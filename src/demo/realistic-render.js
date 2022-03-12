@@ -19,6 +19,7 @@ function init () {
     '/textures/parliament/posz.jpg',
     '/textures/parliament/negz.jpg',
   ])
+  environment.encoding = THREE.sRGBEncoding
   scene.background = environment
   // 直接设置scene的environment属性，该属性将自动将环境贴图作用在所有场景对象中，而不需要循环
   // scene.environment = environment
@@ -43,6 +44,7 @@ function init () {
 
   // make realistic render
   renderer.physicallyCorrectLights = true
+  renderer.outputEncoding = THREE.sRGBEncoding
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
@@ -53,7 +55,7 @@ function init () {
     scene.add(gltf.scene)
     gui.add(gltf.scene.rotation, 'y').min(-Math.PI).max(Math.PI).step(0.001).name('模型旋转Y')
 
-    // updateAllMaterials()
+    updateAllMaterials()
   })
 
   const directionalLight = new THREE.DirectionalLight('#ffffff', 1)
@@ -70,7 +72,7 @@ function init () {
 
   const gui = new dat.GUI();
   const guiOptions = {
-    envMapIntensity: 0
+    envMapIntensity: 1.5
   }
   gui.add(directionalLight, 'intensity').min(0).max(10).step(0.001).name('方向光强度')
   gui.add(directionalLight.position, 'x').min(-5).max(5).step(0.001).name('方向光X')
