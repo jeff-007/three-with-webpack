@@ -29,12 +29,18 @@ function init () {
       if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
         child.material.envMap = environment
         child.material.envMapIntensity = guiOptions.envMapIntensity
+        // update model toneMapping
+        child.material.needsUpdate = true
+        child.castShadow = true
+        child.receiveShadow = true
       }
     })
   }
 
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer();
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
 
   // renderer.setClearColor(new THREE.Color('#ffffff', 1.0));
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -45,6 +51,7 @@ function init () {
   // make realistic render
   renderer.physicallyCorrectLights = true
   renderer.outputEncoding = THREE.sRGBEncoding
+  renderer.toneMapping = THREE.ReinhardToneMapping
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
@@ -61,7 +68,13 @@ function init () {
   const directionalLight = new THREE.DirectionalLight('#ffffff', 1)
   directionalLight.position.set(0.25, 3, -2.25)
   directionalLight.castShadow = true
+  directionalLight.shadow.camera.far = 12
+  directionalLight.shadow.mapSize.set(1024, 1024)
+  directionalLight.shadow.normalBias = 0.01
   scene.add(directionalLight)
+
+  const lightHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
+  scene.add(lightHelper)
 
   // position and point the camera to the center of the scene
   camera.position.set(0, 0, 10)
@@ -78,9 +91,18 @@ function init () {
   gui.add(directionalLight.position, 'x').min(-5).max(5).step(0.001).name('方向光X')
   gui.add(directionalLight.position, 'y').min(-5).max(5).step(0.001).name('方向光Y')
   gui.add(directionalLight.position, 'z').min(-5).max(5).step(0.001).name('方向光Z')
-  gui.add(guiOptions, 'envMapIntensity').min(0).max(10).step(0.001).name('模型环境贴图').onChange(() => {
+  gui.add(guiOptions, 'envMapIntensity').min(0).max(10).step(0.001).name('模型环境贴图').onChange(updateAllMaterials)
+  gui.add(renderer, 'toneMapping', {
+    NoToneMapping: THREE.NoToneMapping,
+    LinearToneMapping: THREE.LinearToneMapping,
+    ReinhardToneMapping: THREE.ReinhardToneMapping,
+    CineonToneMapping: THREE.CineonToneMapping,
+    ACESFilmicToneMapping: THREE.ACESFilmicToneMapping
+  }).onFinishChange((val) => {
+    renderer.toneMapping = val
     updateAllMaterials()
   })
+  gui.add(renderer, 'toneMappingExposure').min(1).max(10).step(0.001)
 
   function initStats() {
     const stats = new Stats();
