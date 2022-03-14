@@ -1,12 +1,6 @@
 import './css/index.css'
 
-// import './demo/haunted-house'
-
-// import './demo/galaxy'
-
-// import './demo/raycaster'
-
-import './demo/realistic-render'
+import './demo/custom-shader'
 
 // 全屏操作
 const container = document.getElementById('container');
