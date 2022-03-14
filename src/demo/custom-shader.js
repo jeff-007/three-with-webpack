@@ -28,7 +28,7 @@ function init () {
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
 
-  camera.position.set(0, 0, 2)
+  camera.position.set(0, 0, 2.2)
   // camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   const geometry = new THREE.PlaneBufferGeometry(1, 1, 32, 32)
@@ -37,7 +37,9 @@ function init () {
   // })
   const material = new THREE.RawShaderMaterial({
     vertexShader: simpleVertex,
-    fragmentShader: simpleFragment
+    fragmentShader: simpleFragment,
+    side: THREE.DoubleSide,
+    wireframe: true
   })
   const mesh = new THREE.Mesh(geometry, material)
   scene.add(mesh)
