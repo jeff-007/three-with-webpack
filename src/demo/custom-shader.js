@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import simpleVertex from '../../src/shaders/simple-shader/vertex.glsl'
+import simpleFragment from '../../src/shaders/simple-shader/fragment.glsl'
 
 function init () {
   const container = document.getElementById('container');
@@ -34,8 +36,8 @@ function init () {
   //   side: THREE.DoubleSide
   // })
   const material = new THREE.RawShaderMaterial({
-    vertexShader: '',
-    fragmentShader: ''
+    vertexShader: simpleVertex,
+    fragmentShader: simpleFragment
   })
   const mesh = new THREE.Mesh(geometry, material)
   scene.add(mesh)

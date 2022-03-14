@@ -60,6 +60,15 @@ module.exports = {
         use: [
           'file-loader'
         ]
+      },
+      // test for glsl in three.js
+      // raw-loader: a loader for webpack that allows importing files as a String.
+      {
+        test: /\.(glsl|vs|fs|vert|frag)$/,
+        exclude: /node_modules/,
+        use: [
+          'raw-loader'
+        ]
       }
     ]
   },
