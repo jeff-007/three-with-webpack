@@ -32,6 +32,15 @@ function init () {
   // camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   const geometry = new THREE.PlaneBufferGeometry(1, 1, 32, 32)
+  const count = geometry.attributes.position.count
+  const randoms = new Float32Array(count)
+
+  for (let i = 0; i < count; i++) {
+    randoms[i] = Math.random()
+  }
+
+  geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1))
+
   // const material = new THREE.MeshBasicMaterial({
   //   side: THREE.DoubleSide
   // })
