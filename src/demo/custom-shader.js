@@ -31,6 +31,9 @@ function init () {
   camera.position.set(0, 0, 2.2)
   // camera.lookAt(new THREE.Vector3(0, 0, 0));
 
+  const textureLoader = new THREE.TextureLoader()
+  const fragTexture = textureLoader.load('/textures/matcaps/1.png')
+
   const geometry = new THREE.PlaneBufferGeometry(1, 1, 32, 32)
   const count = geometry.attributes.position.count
   const randoms = new Float32Array(count)
@@ -48,7 +51,13 @@ function init () {
     vertexShader: simpleVertex,
     fragmentShader: simpleFragment,
     side: THREE.DoubleSide,
-    wireframe: true
+    // wireframe: true,
+    uniforms: {
+      uFrequency: { value: new THREE.Vector2(0.8, 5) },
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color('#0099ff') },
+      uTexture: { value: fragTexture }
+    }
   })
   const mesh = new THREE.Mesh(geometry, material)
   scene.add(mesh)
@@ -58,6 +67,8 @@ function init () {
 
   const gui = new dat.GUI();
   const guiOptions = {}
+  // 注意gui添加的uniform变量
+  gui.add(material.uniforms.uFrequency.value, 'x').min(0.1).max(2).step(0.01).name('着色器 uFrequency')
 
   function initStats() {
     const stats = new Stats();
@@ -80,6 +91,9 @@ function init () {
   render();
 
   function render() {
+    const elapsedTime = clock.getElapsedTime()
+    material.uniforms.uTime.value = elapsedTime
+
     stats.update();
     controls.update()
 
