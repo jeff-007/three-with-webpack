@@ -15,16 +15,20 @@ attribute vec2 uv;
 
 varying float vRandom;
 varying vec2 vUv;
-
-
+varying float vElevation;
 
 void main() {
 //    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
 
     vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+//    modelPosition.z += sin(modelPosition.x * aRandom + uTime) * 0.2;
+//    modelPosition.z += sin(modelPosition.y * uFrequency.y + uTime) * 0.2;
+
     // 使用外部传入的属性 attribute 或者 uniform
-    modelPosition.z += sin(modelPosition.x * aRandom + uTime) * 0.2;
-    modelPosition.z += sin(modelPosition.y * uFrequency.y + uTime) * 0.2;
+    // 记录当前位置信息，通过 vElevation 传入片段着色器进行渲染
+    float elevation = sin(modelPosition.x * aRandom + uTime) * 0.2;
+    elevation += sin(modelPosition.y * uFrequency.y + uTime) * 0.2;
+    modelPosition.z += elevation;
 
     vec4 viewPosition = viewMatrix * modelPosition;
     vec4 projectedPosition = projectionMatrix * viewPosition;
@@ -32,4 +36,5 @@ void main() {
     gl_Position = projectedPosition;
     vRandom = aRandom;
     vUv = uv;
+    vElevation = elevation;
 }
