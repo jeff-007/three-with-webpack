@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/custom-shader'
+import './demo/pattern-shader'
 
 // 全屏操作
 const container = document.getElementById('container');

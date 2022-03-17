@@ -2,8 +2,8 @@ import * as THREE from 'three'
 import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import simpleVertex from '../../src/shaders/simple-shader/vertex.glsl'
-import simpleFragment from '../../src/shaders/simple-shader/fragment.glsl'
+import vertex from '../../src/shaders/pattern/vertex.glsl'
+import fragment from '../../src/shaders/pattern/fragment.glsl'
 
 function init () {
   const container = document.getElementById('container');
@@ -28,47 +28,56 @@ function init () {
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
 
-  camera.position.set(0, 0, 2.2)
+  camera.position.set(1.1, 0.6, 0.7)
   // camera.lookAt(new THREE.Vector3(0, 0, 0));
+  const guiOptions = {
+    depthColor: '#590f8a',
+    surfaceColor: '#1f96e0',
+  }
+  const gui = new dat.GUI();
 
   const textureLoader = new THREE.TextureLoader()
-  const fragTexture = textureLoader.load('/textures/matcaps/1.png')
 
-  const geometry = new THREE.PlaneBufferGeometry(1, 1, 32, 32)
-  const count = geometry.attributes.position.count
-  const randoms = new Float32Array(count)
+  const geometry = new THREE.PlaneBufferGeometry(2.5, 2.5, 40, 40)
 
-  for (let i = 0; i < count; i++) {
-    randoms[i] = Math.random()
-  }
-
-  geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1))
-
-  // const material = new THREE.MeshBasicMaterial({
-  //   side: THREE.DoubleSide
-  // })
-  const material = new THREE.RawShaderMaterial({
-    vertexShader: simpleVertex,
-    fragmentShader: simpleFragment,
+  const material = new THREE.ShaderMaterial({
+    vertexShader: vertex,
+    fragmentShader: fragment,
     side: THREE.DoubleSide,
-    // wireframe: true,
     uniforms: {
-      uFrequency: { value: new THREE.Vector2(0.8, 5) },
+      uBigWavesElevation: { value: 0.18 },
+      uBigWaveFrequency: { value: new THREE.Vector2(45, 47) },
       uTime: { value: 0 },
-      uColor: { value: new THREE.Color('#0099ff') },
-      uTexture: { value: fragTexture }
+      uWaveSpeed: { value: 0.4 },
+      uDepthColor: { value: new THREE.Color(guiOptions.depthColor) },
+      uSurfaceColor: { value: new THREE.Color(guiOptions.surfaceColor) },
+      uColorOffset: { value: 0.08 },
+      uColorMultiplier: { value: 5 }
     }
   })
   const mesh = new THREE.Mesh(geometry, material)
+  mesh.rotation.x = -Math.PI * 0.5
   scene.add(mesh)
+
+  gui.add(material.uniforms.uBigWavesElevation, 'value').min(0).max(1).step(0.001).name('波浪高度');
+  gui.add(material.uniforms.uBigWaveFrequency.value, 'x').min(0).max(50).step(0.01).name('x方向波浪段数');
+  gui.add(material.uniforms.uBigWaveFrequency.value, 'y').min(0).max(50).step(0.01).name('z方向波浪段数');
+  gui.add(material.uniforms.uWaveSpeed, 'value').min(0).max(10).step(0.001).name('波浪速度');
+
+  gui.add(material.uniforms.uColorOffset, 'value').min(0).max(1).step(0.001).name('uColorOffset');
+  gui.add(material.uniforms.uColorMultiplier, 'value').min(0).max(10).step(0.001).name('uColorMultiplier');
+
+
+  gui.addColor(guiOptions, 'depthColor').name('波浪深度颜色').onChange((e) => {
+    material.uniforms.uDepthColor.value.set(e);
+  })
+  gui.addColor(guiOptions, 'surfaceColor').onChange((e) => {
+    material.uniforms.uSurfaceColor.value.set(e);
+  })
+
 
   // add the output of the renderer to the html element
   container.appendChild(renderer.domElement);
-
-  const gui = new dat.GUI();
-  const guiOptions = {}
-  // 注意gui添加的uniform变量，因为 uFrequency 在顶点着色器中定义为vec2类型
-  gui.add(material.uniforms.uFrequency.value, 'x').min(0.1).max(2).step(0.01).name('着色器 uFrequency')
 
   function initStats() {
     const stats = new Stats();
@@ -92,7 +101,8 @@ function init () {
 
   function render() {
     const elapsedTime = clock.getElapsedTime()
-    material.uniforms.uTime.value = elapsedTime
+
+    material.uniforms.uTime.value = elapsedTime;
 
     stats.update();
     controls.update()
