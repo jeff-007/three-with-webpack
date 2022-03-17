@@ -38,7 +38,7 @@ function init () {
 
   const textureLoader = new THREE.TextureLoader()
 
-  const geometry = new THREE.PlaneBufferGeometry(2.5, 2.5, 40, 40)
+  const geometry = new THREE.PlaneBufferGeometry(3, 3, 50, 50)
 
   const material = new THREE.ShaderMaterial({
     vertexShader: vertex,

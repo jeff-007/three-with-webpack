@@ -89,7 +89,7 @@ void main() {
     float elevation = (eleOnX * eleOnZ) * uBigWavesElevation;
 
     // 波浪高度添加噪声，并调整幅度
-    elevation -= abs(cnoise(vec3(modelPosition.xz * 3.0, uTime * 0.2)) * 0.15);
+    elevation -= abs(cnoise(vec3(modelPosition.xz * 5.0, uTime * 0.2)) * 0.15);
 
     modelPosition.y += elevation;
 
