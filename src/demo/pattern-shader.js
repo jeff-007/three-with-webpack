@@ -28,11 +28,11 @@ function init () {
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
 
-  camera.position.set(1.1, 0.6, 0.7)
+  camera.position.set(1.5, 1.8, 1.4)
   // camera.lookAt(new THREE.Vector3(0, 0, 0));
   const guiOptions = {
-    depthColor: '#590f8a',
-    surfaceColor: '#1f96e0',
+    depthColor: '#186691',
+    surfaceColor: '#9bd8ff',
   }
   const gui = new dat.GUI();
 
@@ -46,9 +46,9 @@ function init () {
     side: THREE.DoubleSide,
     uniforms: {
       uBigWavesElevation: { value: 0.18 },
-      uBigWaveFrequency: { value: new THREE.Vector2(45, 47) },
+      uBigWaveFrequency: { value: new THREE.Vector2(4, 1.5) },
       uTime: { value: 0 },
-      uWaveSpeed: { value: 0.4 },
+      uWaveSpeed: { value: 0.75 },
       uDepthColor: { value: new THREE.Color(guiOptions.depthColor) },
       uSurfaceColor: { value: new THREE.Color(guiOptions.surfaceColor) },
       uColorOffset: { value: 0.08 },
@@ -58,6 +58,8 @@ function init () {
   const mesh = new THREE.Mesh(geometry, material)
   mesh.rotation.x = -Math.PI * 0.5
   scene.add(mesh)
+
+  // use a 3D perlin noise to make the waves change in time
 
   gui.add(material.uniforms.uBigWavesElevation, 'value').min(0).max(1).step(0.001).name('波浪高度');
   gui.add(material.uniforms.uBigWaveFrequency.value, 'x').min(0).max(50).step(0.01).name('x方向波浪段数');
