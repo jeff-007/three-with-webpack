@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/pattern-shader'
+import './demo/galaxy-shader'
 
 // 全屏操作
 const container = document.getElementById('container');
