@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/haunted-house'
+import './demo/post-processing'
 
 // 全屏操作
 const container = document.getElementById('container');
