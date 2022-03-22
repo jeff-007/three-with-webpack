@@ -37,6 +37,23 @@ function init () {
     map: grassColorTexture,
     side: THREE.DoubleSide,
   });
+
+  planeMaterial.onBeforeCompile = (shader) => {
+    console.log(shader.vertexShader)
+    shader.uniforms.uTime = { value: 0 }
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <common>',
+      `
+        #include <common>
+        uniform float uTime;
+        mat2 get2dRotateMatrix(float _angle)
+        {
+            return mat2(cos(_angle), -sin(_angle), sin(_angle), cos(_angle));
+        }
+      `
+    )
+  }
+
   const plane = new THREE.Mesh(planeGeometry, planeMaterial);
   plane.receiveShadow = true;
   plane.rotation.x = -0.5 * Math.PI;

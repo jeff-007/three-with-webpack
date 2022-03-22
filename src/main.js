@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/galaxy-shader'
+import './demo/haunted-house'
 
 // 全屏操作
 const container = document.getElementById('container');
