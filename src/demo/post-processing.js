@@ -25,6 +25,7 @@ function init () {
   const container = document.getElementById('container');
   const scene = new THREE.Scene();
 
+  const textureLoader = new THREE.TextureLoader()
   const gltfLoader = new GLTFLoader()
   const cubeTextureLoader = new THREE.CubeTextureLoader()
   // positive x and negative x
@@ -112,8 +113,60 @@ function init () {
   // Some passed need extra work like the RGBShift pass
   // The RGBShift is available as a shader, we need to use it with a ShaderPass
   const rgbShiftPass = new ShaderPass(RGBShiftShader)
-  rgbShiftPass.enabled = true
+  rgbShiftPass.enabled = false
   effectComposer.addPass(rgbShiftPass)
+
+  // 创建自定义后期处理通道
+  // 新建成功后，还需加载前一个通道的处理结果（texture）
+  // 在uniforms中添加tDiffuse属性，EffectComposer会自动将其更新为前一个通道的处理结果;
+  // 然后通过texture2D方法，获取 tDiffuse 纹理上的像素颜色
+  const TintShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      uTime: { value: 0 },
+      uNormalMap: { value: null }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      
+      void main() {
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+        vUv = uv;
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform sampler2D uNormalMap;
+      uniform float uTime;
+      
+      varying vec2 vUv;
+      
+      void main() {
+      
+        // 正弦函数后期通道动效
+        // vec2 newUv = vec2(
+        //   vUv.x,
+        //   vUv.y + sin(vUv.x * 10.0 + uTime) * 0.1
+        // );
+        // vec4 color = texture2D(tDiffuse, newUv);
+        //
+        // gl_FragColor = color;
+        
+        // 将法线纹理贴图的rgb值设置为-1到1范围；
+        vec3 normalColor = texture2D(uNormalMap, vUv).xyz * 2.0 - 1.0;
+        
+        vec2 newUv = vUv + normalColor.xy * 0.02;
+        vec4 color = texture2D(tDiffuse, newUv);
+        
+        gl_FragColor = color;
+      }
+    `
+  }
+  const tintPass = new ShaderPass(TintShader);
+  tintPass.material.uniforms.uNormalMap.value = textureLoader.load('/textures/bricks/plaster-normal.jpg')
+
+  effectComposer.addPass(tintPass)
+
 
 
   const controls = new OrbitControls(camera, renderer.domElement)
@@ -194,7 +247,11 @@ function init () {
     // renderer.render(scene, camera);
 
     const delta = clock.getDelta();
-    effectComposer.render(delta);
+    const elapsedTime = clock.getElapsedTime()
+
+    tintPass.material.uniforms.uTime.value = elapsedTime
+
+    effectComposer.render(elapsedTime);
   }
   // resize the viewport
   function onResize () {
