@@ -60,8 +60,6 @@ function init () {
   });
 
   // renderer.setClearColor(new THREE.Color('#ffffff', 1.0));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -69,8 +67,37 @@ function init () {
   renderer.physicallyCorrectLights = true
   renderer.outputEncoding = THREE.sRGBEncoding
   renderer.toneMapping = THREE.ReinhardToneMapping
+  renderer.toneMappingExposure = 1.5
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  const effectComposer = new EffectComposer(renderer)
+  // 使用 EffectComposer 之后场景背景色变暗，是因为前述设置的 renderer.outputEncoding = THREE.sRGBEncoding 不再生效
+  // because the render targets of EffectComposer encoding is not set right
+  // 渲染目标的设置可参考 node_modules/three/examples/jsm/postprocessing/EffectComposer.js 中的 WebGLRenderTarget
+  // 若需要在添加后期处理通道后依然支持渲染器中的 antialias 效果，可使用 WebGLMultipleRenderTargets 替代 WebGLRenderTarget
+
+  // 如果像素率等于1，并且浏览器支持 WebGL2，使用 WebGLMultipleRenderTargets，其余使用 WebGLRenderTarget
+  let RenderTargetClass = null
+  if (renderer.getPixelRatio() === 1 && renderer.capabilities.isWebGL2) {
+    RenderTargetClass = THREE.WebGLMultipleRenderTargets
+  } else {
+    RenderTargetClass = THREE.WebGLRenderTarget
+  }
+
+  const renderTarget = new THREE.WebGLRenderTarget(
+    window.innerWidth,
+    window.innerHeight,
+    {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      encoding: THREE.sRGBEncoding
+    }
+  )
+  console.log(renderer.capabilities)
+
+  // 第二个参数传入自定义的渲染目标（render target）
+  const effectComposer = new EffectComposer(renderer, renderTarget)
   effectComposer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   effectComposer.setSize(window.innerWidth, window.innerHeight);
 
@@ -79,16 +106,15 @@ function init () {
   effectComposer.addPass(renderPass)
 
   const dotScreenPass = new DotScreenPass()
+  dotScreenPass.enabled = false
   effectComposer.addPass(dotScreenPass)
-  dotScreenPass.enabled = true
 
   // Some passed need extra work like the RGBShift pass
   // The RGBShift is available as a shader, we need to use it with a ShaderPass
   const rgbShiftPass = new ShaderPass(RGBShiftShader)
+  rgbShiftPass.enabled = true
   effectComposer.addPass(rgbShiftPass)
 
-  // 使用 EffectComposer 之后场景背景色变暗，是因为前述设置的 renderer.outputEncoding = THREE.sRGBEncoding 不再生效
-  // because the render targets of EffectComposer encoding is not set right
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
@@ -162,18 +188,23 @@ function init () {
   render();
 
   function render() {
+    requestAnimationFrame(render);
     stats.update();
     controls.update()
-
-    requestAnimationFrame(render);
     // renderer.render(scene, camera);
-    effectComposer.render()
+
+    const delta = clock.getDelta();
+    effectComposer.render(delta);
   }
   // resize the viewport
   function onResize () {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // update effect composer
+    effectComposer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    effectComposer.setSize(window.innerWidth, window.innerHeight);
   }
   window.addEventListener('resize', onResize, false);
 }
