@@ -12,6 +12,8 @@ import { DotScreenPass } from 'three/examples/jsm/postprocessing/DotScreenPass.j
 import { RGBShiftShader } from 'three/examples/jsm/shaders/RGBShiftShader.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
 import { BloomPass } from 'three/examples/jsm/postprocessing/BloomPass.js'
 import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js'
@@ -24,6 +26,8 @@ import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonCont
 function init () {
   const container = document.getElementById('container');
   const scene = new THREE.Scene();
+
+  console.log(mergeBufferGeometries)
 
   const textureLoader = new THREE.TextureLoader()
   const gltfLoader = new GLTFLoader()
@@ -60,6 +64,8 @@ function init () {
     antialias: true
   });
 
+  console.log('renderer info', renderer.info)
+
   // renderer.setClearColor(new THREE.Color('#ffffff', 1.0));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -71,6 +77,58 @@ function init () {
   renderer.toneMappingExposure = 1.5
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // 使用 mergeBufferGeometries 合并渲染几何体
+  // const geometries = []
+  // for (let i = 0; i < 50; i++) {
+  //   const geometry = new THREE.BoxBufferGeometry(0.5, 0.5, 0.5)
+  //   geometry.translate(
+  //     (Math.random() - 0.5) * 10,
+  //     (Math.random() - 0.5) * 10,
+  //     (Math.random() - 0.5) * 10
+  //   )
+  //   geometries.push(geometry)
+  // }
+  //
+  // const mergeGeometry = mergeBufferGeometries(geometries)
+  // const newMaterial = new THREE.MeshNormalMaterial()
+  // const newMesh = new THREE.Mesh(mergeGeometry, newMaterial)
+  // scene.add(newMesh)
+
+  // 使用 InstancedMesh 创建网格
+  const geometry = new THREE.BoxBufferGeometry(0.5, 0.5, 0.5)
+  const newMaterial = new THREE.MeshNormalMaterial()
+  // 创建50个实例
+  const newMesh = new THREE.InstancedMesh(geometry, newMaterial, 50)
+  // 如果需要在每一帧中动态修改InstancedMesh中的矩阵
+  newMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+  console.log(newMesh)
+  scene.add(newMesh)
+
+  for (let i = 0; i < 50; i++) {
+    // 通过欧拉角生成旋转四元数
+    const quaternion = new THREE.Quaternion();
+    quaternion.setFromEuler(new THREE.Euler(
+      (Math.random() - 0.5) * Math.PI * 2,
+      (Math.random() - 0.5) * Math.PI * 2,
+      0
+    ))
+
+    // 设置位置信息
+    const position = new THREE.Vector3(
+      (Math.random() - 0.5) * 10,
+      (Math.random() - 0.5) * 10,
+      (Math.random() - 0.5) * 10
+    )
+
+    const matrix = new THREE.Matrix4()
+    // 矩阵应用四元数进行旋转
+    matrix.makeRotationFromQuaternion(quaternion)
+
+    // 矩阵应用位置向量
+    matrix.setPosition(position)
+    newMesh.setMatrixAt(i, matrix)
+  }
 
   // 使用 EffectComposer 之后场景背景色变暗，是因为前述设置的 renderer.outputEncoding = THREE.sRGBEncoding 不再生效
   // because the render targets of EffectComposer encoding is not set right
@@ -165,7 +223,7 @@ function init () {
   const tintPass = new ShaderPass(TintShader);
   tintPass.material.uniforms.uNormalMap.value = textureLoader.load('/textures/bricks/plaster-normal.jpg')
 
-  effectComposer.addPass(tintPass)
+  // effectComposer.addPass(tintPass)
 
 
 
