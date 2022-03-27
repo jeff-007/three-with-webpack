@@ -7,3 +7,19 @@ body{
     left: 0;
     outline: none;
 }
+.loading-bar{
+    position: absolute;
+    z-index: 20;
+    top: 50%;
+    height: 2px;
+    background: rgba(255, 255, 255, 1);
+    transform: scaleX(0);
+    width: 100%;
+    transform-origin: top left;
+    transition: transform 0.5s;
+    will-change: transform;
+}
+.loading-bar.ended{
+    transform-origin: top right;
+    transition: transform 1.5s ease-in-out;
+}

@@ -38,17 +38,28 @@ function init () {
   const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial)
   scene.add(overlay)
 
+  const loadingBar = document.querySelector('.loading-bar')
   // 创建 LoadingManager，对 GLTFLoader、CubeTextureLoader进行加载管理
   // 接收三个回调函数，分别是加载完成、加载中、加载失败
   const loadingManager = new THREE.LoadingManager(
     // loaded
     // 通过gsap添加渐变动画
     () => {
-      gsap.to(overlayMaterial.uniforms.uAlpha, { duration: 3, value: 0 })
+      gsap.delayedCall(0.5, () => {
+        gsap.to(overlayMaterial.uniforms.uAlpha, { duration: 3, value: 0 })
+        loadingBar.classList.add('ended')
+        loadingBar.style.transform = ''
+      })
     },
     // progress
-    () => {
-
+    // 进度条可以使用html，或者着色器进行创建
+    // 回调函数接收三个参数:
+    // The URL of the assets;
+    // How much assets were loaded;
+    // The total number of assets to load
+    (url, loaded, total) => {
+      const processRadio = loaded / total
+      loadingBar.style.transform = `scaleX(${processRadio})`
     },
     // error
     () => {
