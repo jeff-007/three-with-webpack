@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/post-processing'
+import './demo/realistic-render'
 
 // 全屏操作
 const container = document.getElementById('container');

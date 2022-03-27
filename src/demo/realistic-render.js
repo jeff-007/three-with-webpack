@@ -4,12 +4,62 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
+import gsap from 'gsap'
+
+console.log(gsap)
+
 function init () {
   const container = document.getElementById('container');
   const scene = new THREE.Scene();
 
-  const gltfLoader = new GLTFLoader()
-  const cubeTextureLoader = new THREE.CubeTextureLoader()
+  // overlay
+  // 在着色器中移除所有和视角转换相关的矩阵操作，仅在屏幕上绘制一个平面几何体
+  // 平面几何体大小（size）为1，将顶点坐标范围置为 [-1, 1]，可实现几何体布满全屏
+  // 在片段着色器中若想设置透明度，需要将材质 transparent 属性置为 true
+  const overlayGeometry = new THREE.PlaneBufferGeometry(2, 2, 1, 1);
+  const overlayMaterial = new THREE.ShaderMaterial({
+    transparent: true,
+    uniforms: {
+      uAlpha: { value: 1 }
+    },
+    vertexShader: `
+      void main() {
+        gl_Position = vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uAlpha;
+      
+      void main() {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, uAlpha);
+      }
+    `
+  })
+  const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial)
+  scene.add(overlay)
+
+  // 创建 LoadingManager，对 GLTFLoader、CubeTextureLoader进行加载管理
+  // 接收三个回调函数，分别是加载完成、加载中、加载失败
+  const loadingManager = new THREE.LoadingManager(
+    // loaded
+    // 通过gsap添加渐变动画
+    () => {
+      gsap.to(overlayMaterial.uniforms.uAlpha, { duration: 3, value: 0 })
+    },
+    // progress
+    () => {
+
+    },
+    // error
+    () => {
+      console.log('loading error')
+    }
+  );
+
+  const gltfLoader = new GLTFLoader(loadingManager)
+  const cubeTextureLoader = new THREE.CubeTextureLoader(loadingManager)
+
+
   // positive x and negative x
   const environment = cubeTextureLoader.load([
     '/textures/parliament/posx.jpg',
@@ -73,8 +123,9 @@ function init () {
   directionalLight.shadow.normalBias = 0.01
   scene.add(directionalLight)
 
-  const lightHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
-  scene.add(lightHelper)
+  // 方向光阴影相机辅助系统
+  // const lightHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
+  // scene.add(lightHelper)
 
   // position and point the camera to the center of the scene
   camera.position.set(0, 0, 10)
