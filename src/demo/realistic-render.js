@@ -38,6 +38,7 @@ function init () {
   const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial)
   scene.add(overlay)
 
+  let sceneReady = false
   const loadingBar = document.querySelector('.loading-bar')
   // 创建 LoadingManager，对 GLTFLoader、CubeTextureLoader进行加载管理
   // 接收三个回调函数，分别是加载完成、加载中、加载失败
@@ -49,6 +50,7 @@ function init () {
         gsap.to(overlayMaterial.uniforms.uAlpha, { duration: 3, value: 0 })
         loadingBar.classList.add('ended')
         loadingBar.style.transform = ''
+        sceneReady = true
       })
     },
     // progress
@@ -184,12 +186,56 @@ function init () {
 
   const clock = new THREE.Clock()
 
-  render();
+  // 定义场景中的点集，包含当前顶点的三维坐标以及对应的html节点
+  const pointSet = [
+    {
+      position: new THREE.Vector3(0, 2.0, 1.5),
+      element: document.querySelector('.point-0')
+    }
+  ]
+
+  const rayCaster = new THREE.Raycaster()
+
+  render()
 
   function render() {
     stats.update();
     controls.update()
+    if (sceneReady) {
+      // 克隆场景顶点的三维坐标，并在克隆后的顶点坐标上转换成二维顶点坐标
+      // 使用 Vector3中的 project 方法，传入相机作为参数，转换三维坐标为正交化的二维坐标
+      // Projects this vector from world space into the camera's normalized device coordinate (NDC) space.
+      for (const point of pointSet) {
+        const screenPosition = point.position.clone();
+        screenPosition.project(camera)
 
+        // project方法转换后的坐标在区间[-1, 1]之间，需要根据当前画布和视口区域作调整，并且修改其对应的dom节点样式，使其跟随场景中三维坐标变化
+        const translateX = screenPosition.x * window.innerWidth * 0.5
+        const translateY = -screenPosition.y * window.innerHeight * 0.5
+        point.element.style.transform = `translate(${translateX}px, ${translateY}px)`
+
+        // use a Raycaster and shoot a ray from the camera to the point;
+        // if there is no intersecting object, then show the point;
+        // if there is intersecting object, then test the distance of the intersection:
+        // if the intersection point is further than the point, it means the object is behind the point, and then show the point
+        // if the intersection point is closer than the point, it means the object is in front ot the point, and then hide the point
+        rayCaster.setFromCamera(screenPosition, camera);
+        const intersects = rayCaster.intersectObjects(scene.children, true)
+        if (intersects.length === 0) {
+          point.element.classList.add('visible')
+        } else {
+          const intersectionDistance = intersects[0].distance
+          // 获取相机到测试点（需要是Vector3类型）间的距离
+          const pointDistance = point.position.distanceTo(camera.position)
+          if (intersectionDistance < pointDistance) {
+            point.element.classList.remove('visible')
+          } else {
+            point.element.classList.add('visible')
+          }
+          // point.element.classList.remove('visible')
+        }
+      }
+    }
     requestAnimationFrame(render);
     renderer.render(scene, camera);
   }

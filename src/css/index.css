@@ -23,3 +23,49 @@ body{
     transform-origin: top right;
     transition: transform 1.5s ease-in-out;
 }
+
+/* 实时渲染demo，插入场景dom */
+.point{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.point:hover .text{
+    opacity: 1;
+}
+.point .label,.point .text{
+    position: absolute;
+    font-weight: 100;
+    font-size: 14px;
+    /*border: 1px solid #ffffff77;*/
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    color: rgba(255, 255, 255, 1);
+    font-family: sans-serif;
+}
+.point .label{
+    top: -20px;
+    left: -20px;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 50%;
+    cursor: help;
+    transform: scale(0 ,0);
+    transition: transform 0.3s;
+}
+.point.visible .label{
+    transform: scale(1, 1);
+}
+.point .text{
+    top: 30px;
+    left: -120px;
+    width: 200px;
+    line-height: 1.3em;
+    padding: 20px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
