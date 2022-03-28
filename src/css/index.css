@@ -7,6 +7,25 @@ body{
     left: 0;
     outline: none;
 }
+.scroll-box{
+    width: 100%;
+    height: auto;
+    overflow: auto;
+    position: relative;
+    z-index: 5;
+}
+.scroll-text{
+    font-size: 72px;
+    font-weight: bolder;
+    color: antiquewhite;
+    width: 100%;
+    margin: 200px 0;
+    padding: 100px 80px;
+    box-sizing: border-box;
+}
+.scroll-text:nth-child(2n){
+    text-align: right;
+}
 .loading-bar{
     position: absolute;
     z-index: 20;

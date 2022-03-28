@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/realistic-render'
+import './demo/scroll-animation'
 
 // 全屏操作
 const container = document.getElementById('container');
