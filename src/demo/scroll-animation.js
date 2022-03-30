@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import gsap from 'gsap'
 
 const cursor = {
   x: 0,
@@ -32,8 +33,21 @@ function init () {
   bodyDom.appendChild(domBox)
 
   let scrollY = window.scrollY
+  let currentSection = 0
   window.addEventListener('scroll', () => {
     scrollY = window.scrollY
+    // 当前滚动距离所在视口区域
+    const newSection = Math.round(scrollY / window.innerHeight)
+    // 页面视口进入新区域
+    if (currentSection !== newSection) {
+      currentSection = newSection
+      gsap.to(sectionMeshes[currentSection].rotation, {
+        duration: 1.5,
+        ease: 'power2.inOut',
+        x: '+=6',
+        y: '+=3'
+      })
+    }
   })
 
   const container = document.getElementById('container');
@@ -60,6 +74,23 @@ function init () {
 
   // const controls = new OrbitControls(camera, renderer.domElement)
   // controls.enableDamping = true
+  const textureLoader = new THREE.TextureLoader()
+
+  const particleTexture = textureLoader.load('textures/particles/snowflake2.png')
+
+  const galaxyParameters = {
+    options: {
+      size: 0.06,
+      color: '#ffeded',
+      transparent: true,
+      sizeAttenuation: true,
+      // transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      alphaMap: particleTexture,
+      // vertexColors: true
+    }
+  }
 
   const objectDistance = 6
   const material = new THREE.MeshToonMaterial({ color: '#ffeded' })
@@ -68,7 +99,7 @@ function init () {
     material
   )
   const mesh2 = new THREE.Mesh(
-    new THREE.ConeGeometry(1.4, 2, 32),
+    new THREE.ConeGeometry(1.4, 3, 20),
     material
   )
   const mesh3 = new THREE.Mesh(
@@ -86,11 +117,34 @@ function init () {
   const sectionMeshes = [mesh1, mesh2, mesh3]
   scene.add(mesh1, mesh2, mesh3)
 
+  // 添加粒子效果
+  const particlesCount = 1000;
+  const particleGeometry = new THREE.BufferGeometry()
+  const positions = new Float32Array(particlesCount * 3)
+
+  for (let i = 0; i < particlesCount; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 10;
+    positions[i * 3 + 1] = objectDistance * 0.5 - Math.random() * objectDistance * (sectionMeshes.length);
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+  }
+
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+  const particleMaterial = new THREE.PointsMaterial(galaxyParameters.options)
+
+  const points = new THREE.Points(particleGeometry, particleMaterial)
+  scene.add(points)
+
+  const gui = new dat.GUI({ closed: true })
+  gui.addColor(galaxyParameters.options, 'color').onChange((val) => {
+    material.color.set(val)
+    particleMaterial.color.set(val)
+  })
+
   const directionalLight = new THREE.DirectionalLight('#ffffff', 0.7)
   directionalLight.position.set(1, 1, 0)
   scene.add(directionalLight)
 
-  const textureLoader = new THREE.TextureLoader()
   const rayCaster = new THREE.Raycaster()
 
   container.appendChild(renderer.domElement);
@@ -109,15 +163,19 @@ function init () {
   }
   const stats = initStats();
   const clock = new THREE.Clock()
+  let previousTime = 0
 
   render();
 
   function render() {
     const elapsedTime = clock.getElapsedTime()
+    const deltaTime = elapsedTime - previousTime
+    previousTime = elapsedTime
 
     // 网格添加动画
     for (const mesh of sectionMeshes) {
-      mesh.rotation.set(elapsedTime * 0.25, elapsedTime * 0.05, 0)
+      mesh.rotation.x += deltaTime * 0.25
+      mesh.rotation.y += deltaTime * 0.05
     }
 
     camera.position.y = -window.scrollY / window.innerHeight * objectDistance
@@ -129,8 +187,8 @@ function init () {
     // 使用group分组，解决鼠标视差效果和鼠标滚动切换效果得冲突
     // group分组上实现视差效果，group内部实现滚动切换
     // 添加视差缓动过渡效果，即每一帧只移动当前坐标到目标点间距离得10%
-    cameraGroup.position.x += (parallaxX - cameraGroup.position.x) * 0.1
-    cameraGroup.position.y += (parallaxY - cameraGroup.position.y) * 0.1
+    cameraGroup.position.x += (parallaxX - cameraGroup.position.x) * deltaTime * 5
+    cameraGroup.position.y += (parallaxY - cameraGroup.position.y) * deltaTime * 5
 
     stats.update();
     // 使用控件的enableDamping属性时，需要在每一帧中调用控件的update方法
