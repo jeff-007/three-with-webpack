@@ -30,6 +30,17 @@ function init () {
   // const gltfLoader = new GLTFLoader()
   // gltfLoader.setDRACOLoader(dracoLoader)
 
+  // 加载baked纹理贴图
+  const textureLoader = new THREE.TextureLoader()
+  const bakedTexture = textureLoader.load('/textures/baked/stage.jpg')
+  // baked纹理未正确显示，大概率是被翻转了，设置flip进行修正
+  bakedTexture.flipY = false
+
+  // 修正色值
+  // 在blender中保存纹理图片时，设置的保存格式为RGB，需要设置贴图以及renderer对应的编码格式
+  bakedTexture.encoding = THREE.sRGBEncoding
+  renderer.outputEncoding = THREE.sRGBEncoding
+
   const gltfLoader = new GLTFLoader()
   // gltfLoader.load('/models/Fox/glTF/Fox.gltf', (gltf) => {
   //   // 当模型中的场景有多个子节点需要添加时（scene.children长度大于1）,添加到当前场景时，需要先拷贝一份，否则执行scene.add后，被添加的元素会从模型场景中移除，导致循环添加时会缺少部分元素未被正确添加
@@ -39,50 +50,23 @@ function init () {
   //   }
   // })
 
-  let mixer = null
-  gltfLoader.load('/models/Fox/glTF/Fox.gltf', (gltf) => {
-    // 创建动画合成器，接收模型场景图作为参数
-    mixer = new THREE.AnimationMixer(gltf.scene)
-    // 添加动画剪辑至合成器
-    const action = mixer.clipAction(gltf.animations[1])
-    // 播放动画
-    action.play()
+  const bakedMaterial = new THREE.MeshBasicMaterial({
+    map: bakedTexture
+  })
 
-    gltf.scene.scale.set(0.35, 0.35, 0.35)
+  gltfLoader.load('/models/stage/glTF-Binary/stage.glb', (gltf) => {
+    console.log(gltf)
+    // 为模型中的每个对象添加材质,并应用baked纹理贴图
+    gltf.scene.traverse((child) => {
+      child.material = bakedMaterial
+    })
+    gltf.scene.position.set(0, 0.01, 0)
     scene.add(gltf.scene)
   })
 
-  // create and position the plane
-  const planeGeometry = new THREE.PlaneGeometry(100, 100, 1, 1);
-  const planeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-  plane.receiveShadow = true;
-  plane.rotation.x = -0.5 * Math.PI;
-  scene.add(plane);
-
-  // position and point the camera to the center of the scene
-  camera.position.set(-54, 83, 85)
+  camera.position.set(2.9, 2.7, 4.6)
   camera.lookAt(new THREE.Vector3(10, 0, 0));
 
-  // add subtle ambient lighting
-  const ambiColor = '#1c1c1c';
-  const ambientLight = new THREE.AmbientLight(ambiColor, 0.5);
-  scene.add(ambientLight);
-
-  const spotLight = new THREE.SpotLight('#97a0a5');
-  spotLight.position.set(-40, 30, -10);
-  spotLight.castShadow = true;
-  spotLight.shadow.camera.near = 2;
-  spotLight.shadow.camera.far = 400;
-  spotLight.shadow.camera.fov = 40;
-  spotLight.target = plane;
-  spotLight.angle = 0.8;
-  scene.add(spotLight);
-
-  // const target = new THREE.Object3D();
-  // target.position = new THREE.Vector3(5, 0, 0);
-
-  // add the output of the renderer to the html element
   container.appendChild(renderer.domElement);
 
   const gui = new dat.GUI();
@@ -113,9 +97,6 @@ function init () {
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - oldElapsedTime
     oldElapsedTime = elapsedTime
-
-    // 更新动画合成器
-    mixer && mixer.update(deltaTime)
 
     stats.update();
     controls.update()
