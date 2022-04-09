@@ -1,6 +1,6 @@
 import './css/index.css'
 
-import './demo/scroll-animation'
+import './demo/gltf-stage'
 
 // 全屏操作
 const container = document.getElementById('container');
