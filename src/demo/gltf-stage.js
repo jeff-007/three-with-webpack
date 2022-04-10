@@ -4,6 +4,8 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import vertex from '../../src/shaders/fireflies/vertex.glsl'
+import fragment from '../../src/shaders/fireflies/fragment.glsl'
 
 function init () {
   const container = document.getElementById('container');
@@ -19,6 +21,12 @@ function init () {
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
+
+  const gui = new dat.GUI();
+  const guiOptions = {
+    clearColor: '#201919'
+  }
+  // renderer.setClearColor(guiOptions.clearColor)
 
   // const axesHelper = new THREE.AxesHelper(2)
   // scene.add(axesHelper);
@@ -91,13 +99,45 @@ function init () {
     scene.add(gltf.scene)
   })
 
+  // 添加萤火效果
+  const firefliesGeometry = new THREE.BufferGeometry();
+  const firefliesCount = 30;
+  const positionArray = new Float32Array(firefliesCount * 3);
+
+  for (let i = 0; i < firefliesCount; i++) {
+    positionArray[i * 3 + 0] = (Math.random() - 0.5) * 4;
+    positionArray[i * 3 + 1] = Math.random() * 1.5;
+    positionArray[i * 3 + 2] = (Math.random() - 0.5) * 4;
+  }
+
+  firefliesGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3))
+
+  // const firefliesMaterial = new THREE.PointsMaterial({
+  //   size: 0.1,
+  //   sizeAttenuation: true
+  // })
+
+  const firefliesMaterial = new THREE.ShaderMaterial({
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    uniforms: {
+      uPixelRadio: { value: Math.min(window.devicePixelRatio, 2) }
+    }
+  })
+
+  const fireflies = new THREE.Points(firefliesGeometry, firefliesMaterial)
+  scene.add(fireflies)
+
+
   // camera.position.set(2.9, 2.7, 4.6)
   camera.position.set(0, 2.0, 5.6)
   camera.lookAt(new THREE.Vector3(10, 0, 0));
 
   container.appendChild(renderer.domElement);
 
-  const gui = new dat.GUI();
+  gui.addColor(guiOptions, 'clearColor').onChange((val) => {
+    renderer.setClearColor(val)
+  })
 
   function initStats() {
     const stats = new Stats();
