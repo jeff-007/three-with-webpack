@@ -4,8 +4,11 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import vertex from '../../src/shaders/fireflies/vertex.glsl'
-import fragment from '../../src/shaders/fireflies/fragment.glsl'
+import firefliesVertex from '../../src/shaders/fireflies/vertex.glsl'
+import firefliesFragment from '../../src/shaders/fireflies/fragment.glsl'
+
+import portalVertex from '../../src/shaders/portal/vertex.glsl'
+import portalFragment from '../../src/shaders/portal/fragment.glsl'
 
 function init () {
   const container = document.getElementById('container');
@@ -25,6 +28,8 @@ function init () {
   const gui = new dat.GUI();
   const guiOptions = {
     clearColor: '#201919',
+    portalColorStart: '#000000',
+    portalColorEnd: '#d1b9b3',
   }
   // renderer.setClearColor(guiOptions.clearColor)
 
@@ -69,8 +74,15 @@ function init () {
   })
 
   // 照明背景材质
-  const portalLightMaterial = new THREE.MeshBasicMaterial({ color: '0xffffe5' });
-
+  const portalLightMaterial = new THREE.ShaderMaterial({
+    vertexShader: portalVertex,
+    fragmentShader: portalFragment,
+    uniforms: {
+      uTime: { value: 0 },
+      uColorStart: { value: new THREE.Color(guiOptions.portalColorStart) },
+      uColorEnd: { value: new THREE.Color(guiOptions.portalColorEnd) }
+    }
+  });
 
   // 照明灯材质
   const poleLightMaterial = new THREE.MeshBasicMaterial({ color: '0xffffe5' })
@@ -95,7 +107,7 @@ function init () {
     portalLightMesh.material = portalLightMaterial
     poleLightAMesh.material = poleLightBMesh.material = poleLightMaterial
 
-    gltf.scene.position.set(0, -0.2, 0)
+    gltf.scene.position.set(0, -0.3, 0)
     scene.add(gltf.scene)
   })
 
@@ -122,14 +134,14 @@ function init () {
   // })
 
   const firefliesMaterial = new THREE.ShaderMaterial({
-    vertexShader: vertex,
-    fragmentShader: fragment,
+    vertexShader: firefliesVertex,
+    fragmentShader: firefliesFragment,
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     uniforms: {
       uPixelRadio: { value: Math.min(window.devicePixelRatio, 2) },
-      uSize: { value: 120 },
+      uSize: { value: 200 },
       uTime: { value: 0 }
     }
   })
@@ -139,7 +151,7 @@ function init () {
 
 
   // camera.position.set(2.9, 2.7, 4.6)
-  camera.position.set(0, 2.0, 5.6)
+  camera.position.set(0, 2.5, 4.4)
   camera.lookAt(new THREE.Vector3(10, 0, 0));
 
   container.appendChild(renderer.domElement);
@@ -147,7 +159,13 @@ function init () {
   gui.addColor(guiOptions, 'clearColor').onChange((val) => {
     renderer.setClearColor(val)
   })
-  gui.add(firefliesMaterial.uniforms.uSize, 'value').min(0).max(200).step(1).name('fireflySize')
+  gui.addColor(guiOptions, 'portalColorStart').onChange((val) => {
+    portalLightMaterial.uniforms.uColorStart.value.set(val)
+  })
+  gui.addColor(guiOptions, 'portalColorEnd').onChange((val) => {
+    portalLightMaterial.uniforms.uColorEnd.value.set(val)
+  })
+  gui.add(firefliesMaterial.uniforms.uSize, 'value').min(0).max(400).step(1).name('fireflySize')
 
   function initStats() {
     const stats = new Stats();
@@ -178,6 +196,8 @@ function init () {
 
     // 更新顶点着色器中的时间生成浮动动画效果
     firefliesMaterial.uniforms.uTime.value = elapsedTime
+
+    portalLightMaterial.uniforms.uTime.value = elapsedTime
 
     stats.update();
     controls.update()
