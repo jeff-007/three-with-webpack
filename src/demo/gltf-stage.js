@@ -24,7 +24,7 @@ function init () {
 
   const gui = new dat.GUI();
   const guiOptions = {
-    clearColor: '#201919'
+    clearColor: '#201919',
   }
   // renderer.setClearColor(guiOptions.clearColor)
 
@@ -103,14 +103,18 @@ function init () {
   const firefliesGeometry = new THREE.BufferGeometry();
   const firefliesCount = 30;
   const positionArray = new Float32Array(firefliesCount * 3);
+  const scaleArray = new Float32Array(firefliesCount);
 
   for (let i = 0; i < firefliesCount; i++) {
     positionArray[i * 3 + 0] = (Math.random() - 0.5) * 4;
     positionArray[i * 3 + 1] = Math.random() * 1.5;
     positionArray[i * 3 + 2] = (Math.random() - 0.5) * 4;
+
+    scaleArray[i] = Math.random()
   }
 
   firefliesGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3))
+  firefliesGeometry.setAttribute('aScale', new THREE.BufferAttribute(scaleArray, 1))
 
   // const firefliesMaterial = new THREE.PointsMaterial({
   //   size: 0.1,
@@ -120,8 +124,13 @@ function init () {
   const firefliesMaterial = new THREE.ShaderMaterial({
     vertexShader: vertex,
     fragmentShader: fragment,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
     uniforms: {
-      uPixelRadio: { value: Math.min(window.devicePixelRatio, 2) }
+      uPixelRadio: { value: Math.min(window.devicePixelRatio, 2) },
+      uSize: { value: 120 },
+      uTime: { value: 0 }
     }
   })
 
@@ -138,6 +147,7 @@ function init () {
   gui.addColor(guiOptions, 'clearColor').onChange((val) => {
     renderer.setClearColor(val)
   })
+  gui.add(firefliesMaterial.uniforms.uSize, 'value').min(0).max(200).step(1).name('fireflySize')
 
   function initStats() {
     const stats = new Stats();
@@ -166,6 +176,9 @@ function init () {
     const deltaTime = elapsedTime - oldElapsedTime
     oldElapsedTime = elapsedTime
 
+    // 更新顶点着色器中的时间生成浮动动画效果
+    firefliesMaterial.uniforms.uTime.value = elapsedTime
+
     stats.update();
     controls.update()
 
@@ -181,6 +194,9 @@ function init () {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    firefliesMaterial.uniforms.uPixelRadio.value = Math.min(window.devicePixelRatio, 2)
   }
   window.addEventListener('resize', onResize, false);
 }

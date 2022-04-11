@@ -15,7 +15,10 @@ void main() {
     // apply a step function to get 0.0 if the distance is below 0.5, and 1.0 if the distance is above 0.5
     // invert the value
 
-//    float strength = distance(gl_PointCoord, vec2(0.5));
+    float distanceToCenter = distance(gl_PointCoord, vec2(0.5));
+    // 使用 1 / x 函数进行透明度衰减，距离中心点越远衰减越多
+    // 并将曲线向y轴负方向平移，使得边缘位置的透明度为0（中心点坐标设置为了(0.5, 0.5)）
+    float strength = 0.05 / distanceToCenter - 0.05 * 2.0;
 //    // strength = step(0.5, strength);
 //
 //
@@ -27,6 +30,6 @@ void main() {
 //    // 最终颜色，根据明亮度strength，将vColor和黑色混合
 //    vec3 color = mix(vec3(0.0), vColor, strength);
 
-    gl_FragColor = vec4(1.0, 0, 0, 1.0);
+    gl_FragColor = vec4(1.0, 1.0, 1.0, strength);
 }
 
