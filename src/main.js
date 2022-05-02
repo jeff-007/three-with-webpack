@@ -1,8 +1,8 @@
 import './css/index.css'
 
-import './demo/gltf-stage'
+// import './demo/gltf-stage'
 
-// import './demo/realistic-render'
+import './demo/earth-effect'
 
 // 全屏操作
 const container = document.getElementById('container');
