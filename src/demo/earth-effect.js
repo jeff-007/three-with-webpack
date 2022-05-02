@@ -3,7 +3,6 @@ import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import firefliesVertex from '../../src/shaders/fireflies/vertex.glsl'
 import firefliesFragment from '../../src/shaders/fireflies/fragment.glsl'
 

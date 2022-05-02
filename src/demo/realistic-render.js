@@ -6,8 +6,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import gsap from 'gsap'
 
-console.log(gsap)
-
 function init () {
   const container = document.getElementById('container');
   const scene = new THREE.Scene();

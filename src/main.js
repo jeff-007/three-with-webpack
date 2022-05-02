@@ -2,6 +2,8 @@ import './css/index.css'
 
 import './demo/gltf-stage'
 
+// import './demo/realistic-render'
+
 // 全屏操作
 const container = document.getElementById('container');
 window.addEventListener('dblclick', () => {
