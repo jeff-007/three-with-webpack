@@ -8,8 +8,8 @@ import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 
-import firefliesVertex from '../../src/shaders/fireflies/vertex.glsl'
-import firefliesFragment from '../../src/shaders/fireflies/fragment.glsl'
+import flowLightVertex from '../../src/shaders/flowing-light/vertex.glsl'
+import flowLightFragment from '../../src/shaders/flowing-light/fragment.glsl'
 
 import portalVertex from '../../src/shaders/portal/vertex.glsl'
 import portalFragment from '../../src/shaders/portal/fragment.glsl'
@@ -29,7 +29,10 @@ const WaveMeshArr = []; // 所有波动光圈集合
 const planGeometry = new THREE.PlaneBufferGeometry(1, 1); // 默认在XOY平面上
 const globalTextureLoader = new THREE.TextureLoader();
 const map = new THREE.Object3D();
-let globalScene, globalCamera
+let globalScene, globalCamera, backgroundStars
+let uniforms2 = {
+  u_time: { value: 0.0 }
+};
 
 function init () {
   const container = document.getElementById('container');
@@ -181,7 +184,7 @@ function initLight() {
 
 function initEarth() {
   // 地球
-  globalTextureLoader.load('/textures/examples/earth_2.jpg', (texture) => {
+  globalTextureLoader.load('/textures/examples/earth-2.jpg', (texture) => {
     const globeGeometry = new THREE.SphereGeometry(radius, 100, 100);
     const globeMaterial = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide });
     const globeMesh = new THREE.Mesh(globeGeometry, globeMaterial);
@@ -191,8 +194,214 @@ function initEarth() {
   });
 }
 
+// 卫星效果
+function initSatellite() {
+  // 光环
+  globalTextureLoader.load('/textures/examples/halo.png', (texture) => {
+    const geometry = new THREE.PlaneGeometry(14, 14);// 矩形平面
+    const material = new THREE.MeshLambertMaterial({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    groupHalo.add(mesh);
+  });
+  // 卫星
+  globalTextureLoader.load('/textures/examples/small-earth.png', (texture) => {
+    const p1 = new THREE.Vector3(-7, 0, 0);// 顶点1坐标
+    const p2 = new THREE.Vector3(7, 0, 0);// 顶点2坐标
+    const points = [p1, p2];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.PointsMaterial({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide,
+      size: 1, // 点对象像素尺寸
+      depthWrite: false
+    });// 材质对象
+    const earthPoints = new THREE.Points(geometry, material);// 点模型对象
+    groupHalo.add(earthPoints);// 点对象添加到场景中
+  });
+  groupHalo.rotation.set(1.9, 0.5, 1);
+  globalScene.add(groupHalo);
+}
+
+// 地球光晕
+function initEarthSprite() {
+  const texture = globalTextureLoader.load('/textures/examples/earth-aperture.png');
+  const spriteMaterial = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false
+  });
+  const sprite = new THREE.Sprite(spriteMaterial);
+  sprite.scale.set(radius * 3, radius * 3, 1);
+  group.add(sprite);
+}
+
+// 背景星空
+function initPoints() {
+  const texture = globalTextureLoader.load('/textures/examples/gradient.png');
+  const positions = [];
+  const colors = [];
+  const geometry = new THREE.BufferGeometry();
+  for (let i = 0; i < 10000; i++) {
+    const vertex = new THREE.Vector3();
+    vertex.x = Math.random() * 2 - 1;
+    vertex.y = Math.random() * 2 - 1;
+    vertex.z = Math.random() * 2 - 1;
+    positions.push(vertex.x, vertex.y, vertex.z);
+    const color = new THREE.Color();
+    color.setHSL(Math.random() * 0.2 + 0.5, 0.55, Math.random() * 0.25 + 0.55);
+    colors.push(color.r, color.g, color.b);
+  }
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  const starsMaterial = new THREE.PointsMaterial({
+    map: texture,
+    size: 1,
+    transparent: true,
+    opacity: 1,
+    vertexColors: true, // true：且该几何体的colors属性有值，则该粒子会舍弃第一个属性--color，而应用该几何体的colors属性的颜色
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+  backgroundStars = new THREE.Points(geometry, starsMaterial);
+  backgroundStars.scale.set(300, 300, 300);
+  globalScene.add(backgroundStars);
+}
+
+// 中国地图区域描边高亮
+function initGeoJson() {
+  const loader = new THREE.FileLoader();
+  loader.load('/json/geography/china.json', (data) => {
+    const jsonData = JSON.parse(data);
+    initMap(jsonData);
+  });
+  loader.load('/json/geography/china-outline.json', (data) => {
+    const jsonData = JSON.parse(data);
+    outLineMap(jsonData);
+  });
+}
+
+function initMap(chinaJson) {
+  // 遍历省份构建模型
+  chinaJson.features.forEach(elem => {
+    // 新建一个省份容器：用来存放省份对应的模型和轮廓线
+    const province = new THREE.Object3D();
+    const coordinates = elem.geometry.coordinates;
+    coordinates.forEach(multiPolygon => {
+      multiPolygon.forEach(polygon => {
+        // 区别于 gltf-stage.js 示例中的萤火效果demo，这里未直接申明Float32Array变量，而是声明一个普通数组positions，然后在添加位置信息时使用Float32BufferAttribute属性
+        // 声明Float32Array变量时需要传入数组长度，并且不能使用普通数组的push等方法
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0XF19553 }); // 0x3BFA9E
+        const positions = [];
+        const linGeometry = new THREE.BufferGeometry();
+        for (let i = 0; i < polygon.length; i++) {
+          const pos = lglt2xyz(polygon[i][0], polygon[i][1]);
+          positions.push(pos.x, pos.y, pos.z);
+        }
+        linGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const line = new THREE.Line(linGeometry, lineMaterial);
+        province.add(line);
+      });
+    });
+    map.add(province);
+  });
+  group.add(map);
+}
+
+function outLineMap(json) {
+  json.features.forEach(elem => {
+    // 新建一个省份容器：用来存放省份对应的模型和轮廓线
+    const province = new THREE.Object3D();
+    const coordinates = elem.geometry.coordinates;
+    coordinates.forEach(multiPolygon => {
+      multiPolygon.forEach(polygon => {
+        // 这里的坐标要做2次使用：1次用来构建模型，1次用来构建轮廓线
+        if (polygon.length > 200) {
+          const v3ps = [];
+          for (let i = 0; i < polygon.length; i++) {
+            const pos = lglt2xyz(polygon[i][0], polygon[i][1]);
+            v3ps.push(pos);
+          }
+          const curve = new THREE.CatmullRomCurve3(v3ps, false);
+          const color = new THREE.Vector3(0.5999758518718452, 0.7798940272761521, 0.6181903838257632);
+          const flyLine = initFlyLine(curve, {
+            speed: 0.4,
+            // color: randomVec3Color(),
+            color: color,
+            number: 3, // 同时跑动的流光数量
+            length: 0.2, // 流光线条长度
+            size: 3 // 粗细
+          }, 5000);
+          province.add(flyLine);
+        }
+      });
+    });
+    map.add(province);
+  });
+  group.add(map);
+}
+
+// curve {THREE.Curve} 路径
+// matSetting {Object} 材质配置项
+// pointsNumber {Number} 点的个数 越多越细致
+function initFlyLine(curve, matSetting, pointsNumber) {
+  const points = curve.getPoints(pointsNumber); // 根据传入的点个数将曲线分段
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const length = points.length;
+  const percents = new Float32Array(length);
+  for (let i = 0; i < points.length; i += 1) {
+    percents[i] = (i / length);
+  }
+  geometry.addAttribute('percent', new THREE.BufferAttribute(percents, 1));
+  const lineMaterial = initLineMaterial(matSetting);
+  const flyLine = new THREE.Points(geometry, lineMaterial);
+  return flyLine;
+}
+
+function initLineMaterial(setting) {
+  const number = setting ? (Number(setting.number) || 1.0) : 1.0;
+  const speed = setting ? (Number(setting.speed) || 1.0) : 1.0;
+  const length = setting ? (Number(setting.length) || 0.5) : 0.5;
+  const size = setting ? (Number(setting.size) || 3.0) : 3.0;
+  const color = setting ? setting.color || new THREE.Vector3(0, 1, 1) : new THREE.Vector3(0, 1, 1);
+  const singleUniforms = {
+    u_time: uniforms2.u_time,
+    number: { type: 'f', value: number },
+    speed: { type: 'f', value: speed },
+    length: { type: 'f', value: length },
+    size: { type: 'f', value: size },
+    color: { type: 'v3', value: color }
+  };
+  const lineMaterial = new THREE.ShaderMaterial({
+    uniforms: singleUniforms,
+    vertexShader: flowLightVertex,
+    fragmentShader: flowLightFragment,
+    transparent: true
+    // blending:THREE.AdditiveBlending,
+  });
+  return lineMaterial;
+}
+
+// three中自带的经纬度转换
+// 经纬度转换成球面坐标
+function lglt2xyz(lng, lat) {
+  const theta = (90 + lng) * (Math.PI / 180);
+  const phi = (90 - lat) * (Math.PI / 180);
+  return (new THREE.Vector3()).setFromSpherical(new THREE.Spherical(radius, phi, theta));
+}
+
 window.onload = () => {
   init()
   initLight()
   initEarth()
+  initSatellite()
+  initEarthSprite()
+  initPoints()
+  initGeoJson()
 };
