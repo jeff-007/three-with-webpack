@@ -30,9 +30,36 @@ const planGeometry = new THREE.PlaneBufferGeometry(1, 1); // 默认在XOY平面�
 const globalTextureLoader = new THREE.TextureLoader();
 const map = new THREE.Object3D();
 let globalScene, globalCamera, backgroundStars
-let uniforms2 = {
+const uniforms2 = {
   u_time: { value: 0.0 }
 };
+
+// 模拟的空间坐标 已经通过经纬度转换了
+const posArr = [
+  { x: -1.7049594735603837, y: 3.208354470512221, z: -3.4350509144786985 },
+  { x: -2.1965610576118175, y: 2.1955955192304506, z: -3.9184792759587768 },
+  { x: -2.2290975556080355, y: 2.6054406912933263, z: -3.639066211507457 },
+  { x: 0.5738958419746141, y: -0.44114968930852216, z: 4.9473255920938985 },
+  { x: -0.9326350073394328, y: 2.8399222968004114, z: -4.00812091773949 },
+  { x: 3.469198597393574, y: 1.2295167303380952, z: -3.3842206934036057 },
+  { x: -2.4019084876611916, y: -2.190220428765315, z: 3.7991801866087123 },
+  { x: -2.49363689878109, y: -4.099696049856375, z: 1.4050862307450966 },
+  { x: -2.3729307780326305, y: 2.840227787960863, z: 3.3618901878497454 },
+  { x: -2.0636200279017873, y: 0.7444294629976027, z: -4.493027615657812 },
+  { x: 0.47725894517680106, y: 2.4327372143508037, z: -4.34212085796347 },
+  { x: -2.4777001955161246, y: -1.2092952460724242, z: 4.171163716394502 },
+  { x: -0.03915748918627658, y: -0.008362945319338826, z: 4.999839672648135 },
+  { x: 1.5223738738260317, y: -1.032865814102439, z: -4.649254348640267 },
+  { x: -0.26640112020426315, y: -4.314854187280748, z: 2.5121830716848077 },
+  { x: -4.031470206741836, y: -2.606648761952297, z: -1.3973654511134501 },
+  { x: 0.8544382232162094, y: 1.5274953155132989, z: 4.683662390031124 },
+  { x: 3.0409624989238546, y: 1.76433738825175, z: -3.555230043268055 },
+  { x: -4.721251023266457, y: 1.2354922989397954, z: -1.0878177947459262 },
+  { x: 2.1518961827021106, y: 3.891904027152385, z: -2.285262755638206 },
+  { x: 0.8501960736517479, y: -2.851729208821255, z: -4.018060123480341 },
+  { x: 2.5631840141785176, y: 4.263234820997851, z: -0.5048926326370041 },
+  { x: -0.4580143454812531, y: -2.6523265200067385, z: 4.213714144386437 }
+];
 
 function init () {
   const container = document.getElementById('container');
@@ -297,7 +324,8 @@ function initMap(chinaJson) {
       multiPolygon.forEach(polygon => {
         // 区别于 gltf-stage.js 示例中的萤火效果demo，这里未直接申明Float32Array变量，而是声明一个普通数组positions，然后在添加位置信息时使用Float32BufferAttribute属性
         // 声明Float32Array变量时需要传入数组长度，并且不能使用普通数组的push等方法
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0XF19553 }); // 0x3BFA9E
+        // 经纬度转换为球面坐标
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0XF19553 });
         const positions = [];
         const linGeometry = new THREE.BufferGeometry();
         for (let i = 0; i < polygon.length; i++) {
@@ -328,6 +356,7 @@ function outLineMap(json) {
             const pos = lglt2xyz(polygon[i][0], polygon[i][1]);
             v3ps.push(pos);
           }
+          // CatmullRomCurve3 使用Catmull-Rom算法，从一系列的点创建一条平滑的三维样条曲线，接收一个数组，数组中每一项是一个vector3对象
           const curve = new THREE.CatmullRomCurve3(v3ps, false);
           const color = new THREE.Vector3(0.5999758518718452, 0.7798940272761521, 0.6181903838257632);
           const flyLine = initFlyLine(curve, {
@@ -388,6 +417,232 @@ function initLineMaterial(setting) {
   return lineMaterial;
 }
 
+// 初始化点和曲线
+function initDotAndFly() {
+  // 创建标注点
+  setRandomDot(groupDots);
+  // 随机点加载group上面
+  group.add(groupDots);
+  // 曲线
+  const animateDots = [];
+  console.info('第一个坐标是多少')
+  console.info(groupDots.children[0].position)
+
+  console.log('groupDots', groupDots)
+
+  groupDots.children.forEach(elem => {
+    if (groupDots.children[0].position.x == elem.position.x) {
+      return true;
+    }
+    const line = addLines(groupDots.children[0].position, elem.position);
+    groupLines.add(line.lineMesh);
+    animateDots.push(line.curve.getPoints(100)); // 这个是里面球
+  });
+  group.add(groupLines);
+  // 添加动画
+  for (let i = 0; i < animateDots.length; i++) {
+    const aGeo = new THREE.SphereGeometry(0.03, 0.03, 0.03);
+    const aMater = new THREE.MeshPhongMaterial({ color: '#F8D764' });
+    const aMesh = new THREE.Mesh(aGeo, aMater);
+    aGroup.add(aMesh);
+  }
+  let vIndex = 0;
+  function animateLine() {
+    aGroup.children.forEach((elem, index) => {
+      const v = animateDots[index][vIndex];
+      elem.position.set(v.x, v.y, v.z);
+    });
+    vIndex++;
+    if (vIndex > 100) {
+      vIndex = 0;
+    }
+    setTimeout(animateLine, 20);
+  }
+  group.add(aGroup);
+  animateLine();
+}
+
+// 形参group指向全局变量groupDots
+function setRandomDot(group) {
+  const texture = globalTextureLoader.load('/textures/examples/label.png');
+  const texture2 = globalTextureLoader.load('/textures/examples/label-aperture.png');
+  posArr.map(pos => {
+    const dotMesh = createPointMesh(pos, texture);
+    const waveMesh = createWaveMesh(pos, texture2);
+    group.add(dotMesh);
+    group.add(waveMesh);
+    WaveMeshArr.push(waveMesh);
+  });
+}
+
+function createPointMesh(pos, texture) {
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true, // 使用背景透明的png贴图，注意开启透明计算
+    // side: THREE.DoubleSide, //双面可见
+    depthWrite: false // 禁止写入深度缓冲区数据
+  });
+  const mesh = new THREE.Mesh(planGeometry, material);
+  const size = radius * 0.04;// 矩形平面Mesh的尺寸
+  mesh.scale.set(size, size, size);// 设置mesh大小
+  // 设置mesh位置
+  mesh.position.set(pos.x, pos.y, pos.z);
+  // mesh在球面上的法线方向(球心和球面坐标构成的方向向量)
+  const coordVec3 = new THREE.Vector3(pos.x, pos.y, pos.z).normalize();
+  // mesh默认在XOY平面上，法线方向沿着z轴new THREE.Vector3(0, 0, 1)
+  const meshNormal = new THREE.Vector3(0, 0, 1);
+  // 四元数属性.quaternion表示mesh的角度状态
+  // .setFromUnitVectors();计算两个向量之间构成的四元数值
+  mesh.quaternion.setFromUnitVectors(meshNormal, coordVec3);
+  return mesh;
+}
+
+function createWaveMesh(pos, texture) {
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x22ffcc,
+    map: texture,
+    transparent: true, // 使用背景透明的png贴图，注意开启透明计算
+    opacity: 1.0,
+    // side: THREE.DoubleSide, //双面可见
+    depthWrite: false // 禁止写入深度缓冲区数据
+  });
+  const mesh = new THREE.Mesh(planGeometry, material);
+  // var coord = lon2xyz(R*1.001, lon, lat)
+  const size = radius * 0.055;// 矩形平面Mesh的尺寸
+  mesh.size = size;// 自顶一个属性，表示mesh静态大小
+  mesh.scale.set(size, size, size);// 设置mesh大小
+  mesh._s = Math.random() * 1.0 + 1.0;// 自定义属性._s表示mesh在原始大小基础上放大倍数  光圈在原来mesh.size基础上1~2倍之间变化
+  mesh.position.set(pos.x, pos.y, pos.z);
+  // mesh姿态设置
+  // mesh在球面上的法线方向(球心和球面坐标构成的方向向量)
+  const coordVec3 = new THREE.Vector3(pos.x, pos.y, pos.z).normalize();
+  // mesh默认在XOY平面上，法线方向沿着z轴new THREE.Vector3(0, 0, 1)
+  const meshNormal = new THREE.Vector3(0, 0, 1);
+  // 四元数属性.quaternion表示mesh的角度状态
+  // .setFromUnitVectors();计算两个向量之间构成的四元数值
+  mesh.quaternion.setFromUnitVectors(meshNormal, coordVec3);
+  return mesh;
+}
+
+// 添加飞线
+function addLines(v0, v3) {
+  // 夹角
+  const angle = (v0.angleTo(v3) * 1.8) / Math.PI / 0.1; // 0 ~ Math.PI
+  const aLen = angle * 0.4; const hLen = angle * angle * 12;
+  const p0 = new THREE.Vector3(0, 0, 0);
+  // 法线向量
+  const rayLine = new THREE.Ray(p0, getVCenter(v0.clone(), v3.clone()));
+  console.log('rayLine', rayLine)
+  // 顶点坐标
+  const vtop = rayLine.at(hLen / rayLine.at(1, new THREE.Vector3()).distanceTo(p0), new THREE.Vector3());
+  // 控制点坐标
+  const v1 = getLenVcetor(v0.clone(), vtop, aLen);
+  const v2 = getLenVcetor(v3.clone(), vtop, aLen);
+  // 绘制三维三次贝赛尔曲线
+  const curve = new THREE.CubicBezierCurve3(v0, v1, v2, v3);
+  const geometry = new LineGeometry();
+  const points = curve.getSpacedPoints(50);
+  const positions = [];
+  const colors = [];
+  const color = new THREE.Color();
+  /**
+   * HSL中使用渐变
+   * h — hue value between 0.0 and 1.0
+   * s — 饱和度 between 0.0 and 1.0
+   * l — 亮度 between 0.0 and 1.0
+   */
+  for (let j = 0; j < points.length; j++) {
+    // color.setHSL( .31666+j*0.005,0.7, 0.7); //绿色
+    color.setHSL(0.81666 + j, 0.88, 0.715 + j * 0.0025); // 粉色
+    colors.push(color.r, color.g, color.b);
+    positions.push(points[j].x, points[j].y, points[j].z);
+  }
+  geometry.setPositions(positions);
+  geometry.setColors(colors);
+  const matLine = new LineMaterial({
+    linewidth: 0.0006,
+    vertexColors: true,
+    dashed: false
+  });
+
+  return {
+    curve: curve,
+    lineMesh: new Line2(geometry, matLine)
+  };
+}
+
+function initLightPillar() {
+  const texture = globalTextureLoader.load('/textures/examples/label.png');
+  const datas = [
+    {
+      lng: 86.39895905468748, lat: 45.15923349468924 // 合肥
+    },
+    {
+      lng: 106.54041, lat: 29.40268 // 重庆
+    }
+  ];
+  datas.forEach(function (obj) {
+    const pos = lglt2xyz(obj.lng, obj.lat);
+    const LightPillar = createLightPillar(pos);
+    groupDots.add(LightPillar);
+    const waveMesh = createLightWaveMesh(pos, texture);
+    LightPillar.add(waveMesh);
+  });
+}
+
+function createLightPillar(pos) {
+  const height = radius * 0.1;// 光柱高度，和地球半径相关，这样调节地球半径，光柱尺寸跟着变化
+  const geometry = new THREE.PlaneBufferGeometry(radius * 0.05, height); // 默认在XOY平面上
+  geometry.rotateX(Math.PI / 2);// 光柱高度方向旋转到z轴上
+  geometry.translate(0, 0, height / 2);// 平移使光柱底部与XOY平面重合
+  const textureLoader = new THREE.TextureLoader(); // TextureLoader创建一个纹理加载器对象
+  const material = new THREE.MeshBasicMaterial({
+    map: textureLoader.load('./imgs/diqiu2/光柱.png'),
+    color: 0x44ffaa, // 光柱颜色，光柱map贴图是白色，可以通过color调节颜色
+    transparent: true, // 使用背景透明的png贴图，注意开启透明计算
+    side: THREE.DoubleSide, // 双面可见
+    depthWrite: false // 是否对深度缓冲区有任何的影响
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  const group = new THREE.Group();
+  // 两个光柱交叉叠加
+  group.add(mesh, mesh.clone().rotateZ(Math.PI / 2));// 几何体绕x轴旋转了，所以mesh旋转轴变为z
+  group.position.set(pos.x, pos.y, pos.z);// 设置mesh位置
+  const coordVec3 = new THREE.Vector3(pos.x, pos.y, pos.z).normalize();
+  const meshNormal = new THREE.Vector3(0, 0, 1);
+  // 四元数属性.quaternion表示mesh的角度状态
+  // .setFromUnitVectors();计算两个向量之间构成的四元数值
+  group.quaternion.setFromUnitVectors(meshNormal, coordVec3);
+  return group;
+}
+
+function createLightWaveMesh(pos, texture) {
+  const geometry = new THREE.PlaneBufferGeometry(1, 1); // 默认在XOY平面上
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x22ffcc,
+    map: texture,
+    transparent: true, // 使用背景透明的png贴图，注意开启透明计算
+    // side: THREE.DoubleSide, //双面可见
+    depthWrite: false // 禁止写入深度缓冲区数据
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  const size = radius * 0.05;// 矩形平面Mesh的尺寸
+  mesh.scale.set(size, size, size);// 设置mesh大小
+  return mesh;
+}
+
+// 计算v1,v2 的中点
+function getVCenter(v1, v2) {
+  const v = v1.add(v2);
+  return v.divideScalar(2);
+}
+
+// 计算V1，V2向量固定长度的点
+function getLenVcetor(v1, v2, len) {
+  const v1v2Len = v1.distanceTo(v2);
+  return v1.lerp(v2, len / v1v2Len);
+}
+
 // three中自带的经纬度转换
 // 经纬度转换成球面坐标
 function lglt2xyz(lng, lat) {
@@ -404,4 +659,6 @@ window.onload = () => {
   initEarthSprite()
   initPoints()
   initGeoJson()
+  initDotAndFly()
+  initLightPillar()
 };
