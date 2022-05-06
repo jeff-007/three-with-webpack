@@ -419,10 +419,10 @@ function initLineMaterial(setting) {
 
 // 初始化点和曲线
 function initDotAndFly() {
-  // 创建标注点
+  // 创建标注点（即地球表面飞线起始点），然后将场景图添加到group中进行渲染显示
   setRandomDot(groupDots);
-  // 随机点加载group上面
   group.add(groupDots);
+  return
   // 曲线
   const animateDots = [];
   console.info('第一个坐标是多少')
@@ -463,10 +463,11 @@ function initDotAndFly() {
 }
 
 // 形参group指向全局变量groupDots
+// 添加地球表面飞线起始点
 function setRandomDot(group) {
   const texture = globalTextureLoader.load('/textures/examples/label.png');
   const texture2 = globalTextureLoader.load('/textures/examples/label-aperture.png');
-  posArr.map(pos => {
+  posArr.forEach(pos => {
     const dotMesh = createPointMesh(pos, texture);
     const waveMesh = createWaveMesh(pos, texture2);
     group.add(dotMesh);
@@ -491,8 +492,9 @@ function createPointMesh(pos, texture) {
   const coordVec3 = new THREE.Vector3(pos.x, pos.y, pos.z).normalize();
   // mesh默认在XOY平面上，法线方向沿着z轴new THREE.Vector3(0, 0, 1)
   const meshNormal = new THREE.Vector3(0, 0, 1);
-  // 四元数属性.quaternion表示mesh的角度状态
-  // .setFromUnitVectors();计算两个向量之间构成的四元数值
+  // 四元数属性.quaternion表示mesh的旋转
+  // setFromUnitVectors(vFrom, vTo): Sets this quaternion to the rotation required to rotate direction vector vFrom to direction vector vTo.
+  // vFrom and vTo are assumed to be normalized.
   mesh.quaternion.setFromUnitVectors(meshNormal, coordVec3);
   return mesh;
 }
