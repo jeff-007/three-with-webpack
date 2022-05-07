@@ -24,7 +24,7 @@ const groupDots = new THREE.Group();
 const groupLines = new THREE.Group();
 const groupHalo = new THREE.Group(); // 卫星环+小卫星
 const aGroup = new THREE.Group();
-const initFlag = false;
+const initFlag = true;
 const WaveMeshArr = []; // 所有波动光圈集合
 const planGeometry = new THREE.PlaneBufferGeometry(1, 1); // 默认在XOY平面上
 const globalTextureLoader = new THREE.TextureLoader();
@@ -166,6 +166,8 @@ function init () {
 
     stats.update();
     controls.update()
+
+    globalAnimate()
 
     // step += guiOptions.bouncingSpeed;
     // sphere.position.x = 20 + (10 * (Math.cos(step)));
@@ -422,7 +424,6 @@ function initDotAndFly() {
   // 创建标注点（即地球表面飞线起始点），然后将场景图添加到group中进行渲染显示
   setRandomDot(groupDots);
   group.add(groupDots);
-  return
   // 曲线
   const animateDots = [];
   console.info('第一个坐标是多少')
@@ -434,11 +435,13 @@ function initDotAndFly() {
     if (groupDots.children[0].position.x == elem.position.x) {
       return true;
     }
+    // groupDots children中的每个mesh都通过  mesh.quaternion.setFromUnitVectors(meshNormal, coordVec3) 处理，调整了当前点在球面的法线方向
     const line = addLines(groupDots.children[0].position, elem.position);
     groupLines.add(line.lineMesh);
     animateDots.push(line.curve.getPoints(100)); // 这个是里面球
   });
   group.add(groupLines);
+  console.log('animateDots', animateDots)
   // 添加动画
   for (let i = 0; i < animateDots.length; i++) {
     const aGeo = new THREE.SphereGeometry(0.03, 0.03, 0.03);
@@ -447,6 +450,8 @@ function initDotAndFly() {
     aGroup.add(aMesh);
   }
   let vIndex = 0;
+  // 曲线上动画实现原理：将animateDots中每条生成的曲线100等分，并且每条曲线创建一个动画小球
+  // 然后通过定时器每隔0.02s在100等分的坐标点之间按照顺序移动动画小球
   function animateLine() {
     aGroup.children.forEach((elem, index) => {
       const v = animateDots[index][vIndex];
@@ -526,17 +531,18 @@ function createWaveMesh(pos, texture) {
   return mesh;
 }
 
-// 添加飞线
+// 添加飞线, v0 起点 v3 终点
 function addLines(v0, v3) {
-  // 夹角
+  // 计算起点和终点的夹角
   const angle = (v0.angleTo(v3) * 1.8) / Math.PI / 0.1; // 0 ~ Math.PI
-  const aLen = angle * 0.4; const hLen = angle * angle * 12;
+  const aLen = angle * 0.4;
+  const hLen = angle * angle * 12;
   const p0 = new THREE.Vector3(0, 0, 0);
-  // 法线向量
+  // 以场景中心为射线起点，v0和v3中心点为方向发射一条射线
   const rayLine = new THREE.Ray(p0, getVCenter(v0.clone(), v3.clone()));
-  console.log('rayLine', rayLine)
   // 顶点坐标
   const vtop = rayLine.at(hLen / rayLine.at(1, new THREE.Vector3()).distanceTo(p0), new THREE.Vector3());
+
   // 控制点坐标
   const v1 = getLenVcetor(v0.clone(), vtop, aLen);
   const v2 = getLenVcetor(v3.clone(), vtop, aLen);
@@ -559,6 +565,7 @@ function addLines(v0, v3) {
     colors.push(color.r, color.g, color.b);
     positions.push(points[j].x, points[j].y, points[j].z);
   }
+  // LineGeometry 中的 setPositions 方法设置通过传入的位置数组设置几何体的位置数据，内部使用Float32Array
   geometry.setPositions(positions);
   geometry.setColors(colors);
   const matLine = new LineMaterial({
@@ -633,13 +640,47 @@ function createLightWaveMesh(pos, texture) {
   return mesh;
 }
 
+function globalAnimate() {
+  if (initFlag) {
+    // 光环
+    groupHalo.rotation.z += 0.01;
+    group.rotation.y += 0.001;
+    // 所有曲线起始点的波动光圈都有自己的透明度和大小状态
+    // 一个波动光圈透明度变化过程是：0~1~0反复循环
+    if (WaveMeshArr.length) {
+      WaveMeshArr.forEach(function (mesh) {
+        mesh._s += 0.007;
+        mesh.scale.set(mesh.size * mesh._s, mesh.size * mesh._s, mesh.size * mesh._s);
+        if (mesh._s <= 1.5) {
+          // mesh._s=1，透明度=0 mesh._s=1.5，透明度=1
+          mesh.material.opacity = (mesh._s - 1) * 2;
+        } else if (mesh._s > 1.5 && mesh._s <= 2) {
+          // mesh._s=1.5，透明度=1 mesh._s=2，透明度=0
+          mesh.material.opacity = 1 - (mesh._s - 1.5) * 2;
+        } else {
+          mesh._s = 1.0;
+        }
+      });
+    }
+  }
+  if (backgroundStars) {
+    backgroundStars.rotation.y += 0.0001;
+  }
+  uniforms2.u_time.value += 0.007;
+}
+
 // 计算v1,v2 的中点
 function getVCenter(v1, v2) {
   const v = v1.add(v2);
+  //  divideScalar(s) 将该向量除以标量s
   return v.divideScalar(2);
 }
 
 // 计算V1，V2向量固定长度的点
+// lerp ( v : Vector3, alpha : Float )
+// v - Vector3 to interpolate towards.
+// alpha - interpolation factor, typically in the closed interval [0, 1].
+// Linearly interpolate between this vector and v, where alpha is the percent distance along the line - alpha = 0 will be this vector, and alpha = 1 will be v.
 function getLenVcetor(v1, v2, len) {
   const v1v2Len = v1.distanceTo(v2);
   return v1.lerp(v2, len / v1v2Len);
