@@ -43,7 +43,7 @@ function init () {
   const guiOptions = {
     styleOption: {
       size: 0.8, // 字体大小
-      height: 0.2, // 拉伸长度
+      height: 0, // 拉伸长度
       curveSegments: 30, // 图形拉伸时分段数
       bevelEnabled: true, // 设置斜角
       bevelThickness: 0.03, // 斜角深度
@@ -53,7 +53,7 @@ function init () {
     },
     // 创建文字网格
     createText: (option) => {
-      const textGeometry = new TextGeometry('Just do it!', {
+      const textGeometry = new TextGeometry('你好世界', {
         font: loadedFont,
         ...option
       })
@@ -85,7 +85,7 @@ function init () {
 
   // 加载字体文件
   const fontLoader = new FontLoader()
-  fontLoader.load('fonts/helvetiker_regular.typeface.json', (font) => {
+  fontLoader.load('/fonts/FangSong_Regular.json', (font) => {
     loadedFont = font
     text = guiOptions.createText(guiOptions.styleOption)
     scene.add(text)

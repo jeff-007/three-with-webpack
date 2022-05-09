@@ -3,6 +3,8 @@ import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
 
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
@@ -29,10 +31,23 @@ const WaveMeshArr = []; // 所有波动光圈集合
 const planGeometry = new THREE.PlaneBufferGeometry(1, 1); // 默认在XOY平面上
 const globalTextureLoader = new THREE.TextureLoader();
 const map = new THREE.Object3D();
-let globalScene, globalCamera, backgroundStars
+let globalScene, globalCamera, backgroundStars, loadedFont
 const uniforms2 = {
   u_time: { value: 0.0 }
 };
+
+const textOptions = {
+  styleOption: {
+    size: 0.8, // 字体大小
+    height: 0, // 拉伸长度
+    curveSegments: 30, // 图形拉伸时分段数
+    bevelEnabled: true, // 设置斜角
+    bevelThickness: 0.03, // 斜角深度
+    bevelSize: 0.02, // 斜角高度
+    bevelOffset: 0,
+    bevelSegments: 4 // 斜角分段数
+  },
+}
 
 // 模拟的空间坐标 已经通过经纬度转换了
 const posArr = [
@@ -237,6 +252,19 @@ function initSatellite() {
     const mesh = new THREE.Mesh(geometry, material);
     groupHalo.add(mesh);
   });
+
+  // 添加环绕文字
+  const fontLoader = new FontLoader()
+  fontLoader.load('/fonts/FangSong_Regular.json', (font) => {
+    loadedFont = font
+    let text = createText(textOptions.styleOption)
+    text.position.set(6, 0, 0)
+    text.rotation.set(Math.PI / 2, Math.PI / 2, Math.PI)
+    groupHalo.add(text);
+    // text = guiOptions.createText(textOptions.styleOption)
+    // scene.add(text)
+  })
+
   // 卫星
   globalTextureLoader.load('/textures/examples/small-earth.png', (texture) => {
     const p1 = new THREE.Vector3(-7, 0, 0);// 顶点1坐标
@@ -253,8 +281,34 @@ function initSatellite() {
     const earthPoints = new THREE.Points(geometry, material);// 点模型对象
     groupHalo.add(earthPoints);// 点对象添加到场景中
   });
+
+
   groupHalo.rotation.set(1.9, 0.5, 1);
   globalScene.add(groupHalo);
+}
+
+function createText(options) {
+  const matCapTexture = globalTextureLoader.load('/textures/matcaps/3.png')
+  const textGeometry = new TextGeometry('你好世界', {
+    font: loadedFont,
+    ...options
+  })
+  // 居中显示文字，先计算几何体边界（两种边界类型 box sphere）
+  // computeBoundingBox、translate方法只应用在几何体对象上
+  // 设置斜角的原因，文字几何体在x、y轴上的位移距离要先减去斜角高度，z轴上位移距离需要减去斜角深度
+  textGeometry.computeBoundingBox()
+  const { styleOption: { bevelSize, bevelThickness } } = textOptions
+  textGeometry.translate(
+    -textGeometry.boundingBox.max.x * 0.5,
+    -(textGeometry.boundingBox.max.y - bevelSize) * 0.5,
+    -(textGeometry.boundingBox.max.z - bevelThickness) * 0.5
+  )
+  // 几何体的center方法基于bounding box实现
+  // 上述居中写法等价于textGeometry.center()
+  // textGeometry.center()
+  // console.log(textGeometry.boundingBox)
+  const textMaterial = new THREE.MeshMatcapMaterial({ matcap: matCapTexture })
+  return new THREE.Mesh(textGeometry, textMaterial)
 }
 
 // 地球光晕
