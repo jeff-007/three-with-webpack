@@ -426,11 +426,6 @@ function initDotAndFly() {
   group.add(groupDots);
   // 曲线
   const animateDots = [];
-  console.info('第一个坐标是多少')
-  console.info(groupDots.children[0].position)
-
-  console.log('groupDots', groupDots)
-
   groupDots.children.forEach(elem => {
     if (groupDots.children[0].position.x == elem.position.x) {
       return true;
@@ -604,9 +599,8 @@ function createLightPillar(pos) {
   const geometry = new THREE.PlaneBufferGeometry(radius * 0.05, height); // 默认在XOY平面上
   geometry.rotateX(Math.PI / 2);// 光柱高度方向旋转到z轴上
   geometry.translate(0, 0, height / 2);// 平移使光柱底部与XOY平面重合
-  const textureLoader = new THREE.TextureLoader(); // TextureLoader创建一个纹理加载器对象
   const material = new THREE.MeshBasicMaterial({
-    map: textureLoader.load('./imgs/diqiu2/光柱.png'),
+    map: globalTextureLoader.load('/textures/examples/pillar.png'),
     color: 0x44ffaa, // 光柱颜色，光柱map贴图是白色，可以通过color调节颜色
     transparent: true, // 使用背景透明的png贴图，注意开启透明计算
     side: THREE.DoubleSide, // 双面可见
