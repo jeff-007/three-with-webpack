@@ -279,7 +279,7 @@ function initSatellite() {
       depthWrite: false
     });// 材质对象
     const earthPoints = new THREE.Points(geometry, material);// 点模型对象
-    groupHalo.add(earthPoints);// 点对象添加到场景中
+    // groupHalo.add(earthPoints);// 点对象添加到场景中
   });
 
 
@@ -289,7 +289,7 @@ function initSatellite() {
 
 function createText(options) {
   const matCapTexture = globalTextureLoader.load('/textures/matcaps/3.png')
-  const textGeometry = new TextGeometry('你好世界', {
+  const textGeometry = new TextGeometry('你瞅啥！？', {
     font: loadedFont,
     ...options
   })
@@ -742,6 +742,7 @@ function lglt2xyz(lng, lat) {
   return (new THREE.Vector3()).setFromSpherical(new THREE.Spherical(radius, phi, theta));
 }
 
+
 window.onload = () => {
   init()
   initLight()
@@ -752,4 +753,25 @@ window.onload = () => {
   initGeoJson()
   initDotAndFly()
   initLightPillar()
+
+  Function.prototype.call2 = function(context) {
+    context.fn = this;
+    var args = [];
+    for(var i = 1, len = arguments.length; i < len; i++) {
+      args.push('arguments[' + i + ']');
+    }
+    eval('context.fn(' + args +')');
+    delete context.fn;
+  }
+
+
+  var foo = {
+    value: 1
+  }
+
+  function bar () {
+    console.log(this.value)
+  }
+
+  bar.call2(foo)
 };
